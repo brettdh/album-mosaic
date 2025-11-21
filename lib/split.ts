@@ -1,4 +1,5 @@
 import { exec as execOrig } from 'child_process'
+import { randomUUID } from 'crypto'
 import path from 'path'
 import util from 'util'
 
@@ -6,7 +7,8 @@ import { program, InvalidArgumentError } from 'commander'
 import fs from 'fs-extra'
 import cliProgress from 'cli-progress'
 
-const exec = util.promisify(execOrig);
+const exec = util.promisify(execOrig)
+const glob = util.promisify(fs.glob)
 
 import sharp from 'sharp'
 import { table } from 'table'
@@ -71,7 +73,7 @@ if (!(await fs.pathExists(options.outDir))) {
 
 const imageExt = path.extname(options.image)
 const imageData = await fs.readFile(options.image)
-const metadata = await sharp(imageData).metadata()
+const imageMetadata = await sharp(imageData).metadata()
 
 const audioFiles = await fs.readdir(options.audioDir)
 
@@ -98,17 +100,7 @@ const results = await Promise.all(
         }
     )
 )
-
 readProgress.stop()
-
-// console.log(
-//     table(
-//         [
-//             [options.image, `${metadata.width}x${metadata.height}`],
-//             ...results.map(({ filename, duration, chunks }) => [filename, `${duration} (${chunks} chunks)`])
-//         ]
-//     )
-// )
 
 const totalChunks = results.map(({ chunks }) => chunks).reduce((a, b) => (a + b))
 console.log(`${results.length} tracks, total ${totalChunks} chunks`)
@@ -119,7 +111,7 @@ console.log(`${'Filename'.padEnd(maxFilenameLength, ' ')} | Audio | Images`)
 const progress = new cliProgress.MultiBar({
     clearOnComplete: false,
     hideCursor: true,
-    format: '{filenamePadded} |    {audioStatus} | {audioDuration} | {bar} | {value}/{total}',
+    format: '{filenamePadded} |     {audioStatus} | {audioDuration} | {bar} | {value}/{total}',
 }, cliProgress.Presets.rect);
 
 type Chunk = {
@@ -140,36 +132,43 @@ await fs.mkdir(imagesDir)
 const audioDir = path.join(options.outDir, 'audio')
 await fs.mkdir(audioDir)
 
-await Promise.all(
+const trackMetadata = await Promise.all(
     results.map(
         async ({ filename, duration, seconds, chunks }, fileIndex) => {
             const filenamePadded = filename.padEnd(maxFilenameLength, ' ')
-            const bar = progress.create(chunks, 0, { filenamePadded, audioDuration: duration, audioStatus: '⏳' })
-            const imageHeightChunk = getChunk(metadata.height, results.length, fileIndex)
-            const paddedY = String(fileIndex).padStart(4, '0')
+            const bar = progress.create(chunks, 0, {
+                filenamePadded, audioDuration: duration, audioStatus: '⏳'
+            })
+            const imageHeightChunk = getChunk(imageMetadata.height, results.length, fileIndex)
+            const yWidth = Math.ceil(Math.log10(results.length))
+            const paddedY = String(fileIndex).padStart(yWidth, '0')
 
             const fullPath = path.join(options.audioDir, filename)
             const audioChunkSize = seconds / chunks
             const audioExt = path.extname(filename)
-            const audioChunkTemplatePath = path.join(audioDir, `${paddedY}-%04d${audioExt}`)
+            const xWidth = Math.ceil(Math.log10(chunks))
+            const indexTemplate = `%0${xWidth}d`
+            const audioChunkTemplatePath = path.join(audioDir, `${paddedY}-${indexTemplate}${audioExt}`)
 
-            let chunksDone = 0
-            const segmentPromise = exec(
-                `ffmpeg -i "${fullPath}" -f segment -segment_time ${audioChunkSize} ${audioChunkTemplatePath}`
-            ).then(() => {
-                bar.update(chunksDone, { filenamePadded, audioDuration: duration, audioStatus: '✅' })
-            })
+            await exec(
+                `ffmpeg -i "${fullPath}" -f segment -segment_time ${audioChunkSize} -c copy -shortest ${audioChunkTemplatePath}`
+            )
+            const audioFiles = await glob(audioChunkTemplatePath.replace(indexTemplate, '*')) as string[]
+            bar.setTotal(audioFiles.length)
+            bar.update(0, { filenamePadded, audioDuration: duration, audioStatus: `✅` })
 
-            await Promise.all([
-                segmentPromise,
-                ...[...Array(chunks).keys()].map(
+            // We did the audio splitting first, because we can get a different number of chunks
+            // than we asked for, based on bit rate considerations. We then use the number of cunks
+            // that we got and split the image strip into the same number.
+
+            const imageStripChunks = await Promise.all(
+                [...Array(audioFiles.length).keys()].map(
                     async (chunkNum) => {
-                        const imageWidthChunk = getChunk(metadata.width, chunks, chunkNum)
+                        const imageWidthChunk = getChunk(imageMetadata.width, audioFiles.length, chunkNum)
 
-                        const paddedX = String(chunkNum).padStart(5, '0')
                         const imageChunkFilename = path.join(
                             imagesDir,
-                            `${paddedX}-${paddedY}${imageExt}`
+                            `${randomUUID()}${imageExt}`,
                         )
                         const params = {
                             top: imageHeightChunk.start,
@@ -179,14 +178,33 @@ await Promise.all(
                         }
                         await sharp(imageData).extract(params).toFile(imageChunkFilename)
 
-                        chunksDone++
                         bar.increment()
+
+                        return imageChunkFilename
                     }
                 )
-            ])
+            )
+
+            const renamedAudioFiles = await Promise.all(
+                audioFiles.map(
+                    async (filename) => {
+                        const audioChunkExt = path.extname(filename)
+                        const newFilename = path.join(audioDir, `${randomUUID()}${audioChunkExt}`)
+                        await fs.rename(filename, newFilename)
+                        return newFilename
+                    }
+                )
+            )
+            return {
+                images: imageStripChunks,
+                audio: renamedAudioFiles,
+            }
         }
     )
 )
-
 // stop all bars
 progress.stop();
+
+const metadataPath = path.join(options.outDir, 'metadata.json')
+const metadata = { tracks: trackMetadata }
+await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
