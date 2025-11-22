@@ -11,7 +11,6 @@ const exec = util.promisify(execOrig)
 const glob = util.promisify(fs.glob)
 
 import sharp from 'sharp'
-import { table } from 'table'
 
 
 function positiveNumeric(value: string, _): number {

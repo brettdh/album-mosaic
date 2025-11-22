@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "split": "ts-node ./lib/split.ts"
+    "split": "ts-node ./lib/split.ts",
+    "validate": "ts-node ./lib/validate.ts"
   },
   "dependencies": {
     "react": "^19.1.1",
