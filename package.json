@@ -31,6 +31,7 @@
     "eslint-plugin-react-refresh": "^0.4.22",
     "fs-extra": "^11.3.2",
     "globals": "^16.4.0",
+    "prettier": "^3.6.2",
     "sharp": "^0.34.5",
     "table": "^6.9.0",
     "ts-node": "^10.9.2",

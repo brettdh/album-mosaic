@@ -1,15 +1,7 @@
-import { exec as execOrig } from 'child_process'
-import util from 'util'
-
 // run split first so tha this exists
 import metadata from "../out/metadata.json" with { type: 'json' }
+import { getDuration } from './audio.ts'
 
-const exec = util.promisify(execOrig)
-
-async function getDuration(audioFilename: string): Promise<string> {
-    const { stdout } = await exec(`ffprobe ${audioFilename} 2>&1 | awk '/Duration:/ {print $2}'`)
-    return stdout.trim()
-}
 
 console.log('Printing all last-two-chunks where the last is sub-second')
 for (const track of metadata.tracks) {
