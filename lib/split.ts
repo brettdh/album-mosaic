@@ -7,8 +7,10 @@ import util from 'util'
 import { program, InvalidArgumentError } from 'commander'
 import fs from 'fs-extra'
 import cliProgress from 'cli-progress'
+import { rimraf } from 'rimraf'
 
 import { durationToSeconds, getDuration } from './audio.ts'
+import type { PartialMetadata } from './data.ts'
 
 const exec = util.promisify(execOrig)
 const glob = util.promisify(fs.glob)
@@ -65,11 +67,6 @@ function emptyOrAbsentDirectory(value: string): string {
 
 program
     .requiredOption(
-        '--out-dir <path>',
-        'Output directory path',
-        emptyOrAbsentDirectory,
-    )
-    .requiredOption(
         '--image <path>',
         'Path to album cover image file',
         fileExists,
@@ -89,9 +86,11 @@ program
 program.parse()
 const options = program.opts()
 
-if (!(await fs.pathExists(options.outDir))) {
-    await fs.mkdir(options.outDir)
+const outDir = 'public/build'
+if (await fs.pathExists(outDir)) {
+    await rimraf(outDir)
 }
+await fs.mkdir(outDir)
 
 const imageExt = path.extname(options.image)
 const imageData = await fs.readFile(options.image)
@@ -153,9 +152,13 @@ function getChunk(
     return { start, end }
 }
 
-const imagesDir = path.join(options.outDir, 'images')
+function makeUrl(filePath: string): string {
+    return `${filePath.replace('public', '')}`
+}
+
+const imagesDir = path.join(outDir, 'images')
 await fs.mkdir(imagesDir)
-const audioDir = path.join(options.outDir, 'audio')
+const audioDir = path.join(outDir, 'audio')
 await fs.mkdir(audioDir)
 
 const trackMetadata = await Promise.all(
@@ -171,6 +174,7 @@ const trackMetadata = await Promise.all(
             results.length,
             fileIndex,
         )
+        const height = chunkSize(imageHeightChunk)
         const yWidth = Math.ceil(Math.log10(results.length))
         const paddedY = String(fileIndex).padStart(yWidth, '0')
 
@@ -243,11 +247,12 @@ const trackMetadata = await Promise.all(
                     imagesDir,
                     `${randomUUID()}${imageExt}`,
                 )
+                const width = chunkSize(imageWidthChunk)
                 const params = {
                     top: imageHeightChunk.start,
                     left: imageWidthChunk.start,
-                    width: chunkSize(imageWidthChunk),
-                    height: chunkSize(imageHeightChunk),
+                    width,
+                    height,
                 }
                 await sharp(imageData)
                     .extract(params)
@@ -255,7 +260,7 @@ const trackMetadata = await Promise.all(
 
                 bar.increment()
 
-                return imageChunkFilename
+                return { image: imageChunkFilename, width }
             }),
         )
 
@@ -270,15 +275,30 @@ const trackMetadata = await Promise.all(
                 return newFilename
             }),
         )
+        if (imageStripChunks.length !== renamedAudioFiles.length) {
+            throw new Error(
+                `image/audio list length mismatch: ` +
+                    `track ${filename} has ${renamedAudioFiles.length} audio chunks ` +
+                    `and ${imageStripChunks.length} image chunks`,
+            )
+        }
         return {
-            images: imageStripChunks,
-            audio: renamedAudioFiles,
+            segments: imageStripChunks.map(({ image, width }, i) => ({
+                imageUrl: makeUrl(image),
+                audioUrl: makeUrl(renamedAudioFiles[i]),
+                width,
+            })),
+            height,
         }
     }),
 )
 // stop all bars
 progress.stop()
 
-const metadataPath = path.join(options.outDir, 'metadata.json')
-const metadata = { tracks: trackMetadata }
+const metadataPath = path.join(outDir, 'metadata.json')
+const metadata: PartialMetadata = {
+    tracks: trackMetadata,
+    totalWidth: imageMetadata.width,
+    totalHeight: imageMetadata.height,
+}
 await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
