@@ -62,7 +62,8 @@ body {
     transition: all 0.3s ease-in-out;
 }
 
-.tile:hover {
+.tile:hover,
+.tile.playing {
     border: 10px;
     border-color: #fff;
     transform: scale(1.2, 1.2);
@@ -84,6 +85,7 @@ body {
 }
 
 /* Transition to showing the bigger shadow on hover */
-.tile:hover::after {
+.tile:hover::after,
+.tile.playing::after {
     opacity: 1;
 }

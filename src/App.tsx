@@ -36,12 +36,37 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    function play(audioUrl?: string) {
-        if (audioUrl) {
-            const audio = new Audio(audioUrl)
-            audio.play()
+    let audio: HTMLAudioElement | null
+    const [activeSegment, setActiveSegment] = useState<[number, number] | null>(
+        null,
+    )
+
+    function play(
+        audioUrl: string,
+        trackNumber: number,
+        segmentNumber: number,
+    ) {
+        setActiveSegment([trackNumber, segmentNumber])
+        if (audio) {
+            audio.pause()
+            audio.src = audioUrl
+        } else {
+            audio = new Audio(audioUrl)
         }
+        audio.play()
+
+        const playbackEnded = () => setActiveSegment(null)
+        audio.addEventListener('ended', playbackEnded)
+        audio.addEventListener('pause', playbackEnded)
     }
+
+    const segmentIsPlaying = useCallback(
+        (trackNumber: number, segmentNumber: number) =>
+            activeSegment &&
+            activeSegment[0] === trackNumber &&
+            activeSegment[1] === segmentNumber,
+        [activeSegment],
+    )
 
     useEffect(() => {
         getMetadataFake().then((metadata) => setMediaMetadata(metadata))
@@ -60,18 +85,17 @@ function App() {
                     {segments.map(({ imageUrl, audioUrl, width }, j) => (
                         <a
                             key={`segment-${i}-${j}`}
-                            href="#"
-                            onClick={() => play(audioUrl)}
+                            href="#!"
+                            onClick={() => audioUrl && play(audioUrl, i, j)}
                         >
                             <div
-                                className="tile"
+                                className={`tile ${segmentIsPlaying(i, j) ? 'playing' : ''}`}
                                 style={{
                                     width: scale(width),
                                     height: scale(height),
                                 }}
                             >
                                 <img
-                                    title={`Track ${i} segment ${j}`}
                                     src={imageUrl}
                                     width={scale(width)}
                                     height={scale(height)}
