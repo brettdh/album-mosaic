@@ -76,35 +76,40 @@ function App() {
         return <div className="loading">Loading</div>
     }
     return (
-        <div
-            className="cover"
-            style={{ height: scale(mediaMetadata.totalHeight) }}
-        >
-            {mediaMetadata.tracks.map(({ segments, height }, i) => (
-                <div key={`track-${i}`} className="track">
-                    {segments.map(({ imageUrl, audioUrl, width }, j) => (
-                        <a
-                            key={`segment-${i}-${j}`}
-                            href="#!"
-                            onClick={() => audioUrl && play(audioUrl, i, j)}
-                        >
-                            <div
-                                className={`tile ${segmentIsPlaying(i, j) ? 'playing' : ''}`}
-                                style={{
-                                    width: scale(width),
-                                    height: scale(height),
-                                }}
+        <div className="container">
+            <div
+                className="cover"
+                style={{ height: scale(mediaMetadata.totalHeight) }}
+            >
+                {mediaMetadata.tracks.map(({ segments, height }, i) => (
+                    <div key={`track-${i}`} className="track">
+                        {segments.map(({ imageUrl, audioUrl, width }, j) => (
+                            <a
+                                key={`segment-${i}-${j}`}
+                                href="#!"
+                                onClick={() => audioUrl && play(audioUrl, i, j)}
                             >
-                                <img
-                                    src={imageUrl}
-                                    width={scale(width)}
-                                    height={scale(height)}
-                                />
-                            </div>
-                        </a>
-                    ))}
-                </div>
-            ))}
+                                <div
+                                    className={`tile ${segmentIsPlaying(i, j) ? 'playing' : ''}`}
+                                    style={{
+                                        width: scale(width),
+                                        height: scale(height),
+                                    }}
+                                >
+                                    <img
+                                        src={imageUrl}
+                                        width={scale(width)}
+                                        height={scale(height)}
+                                    />
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                ))}
+            </div>
+            {import.meta.env.MODE === 'development' && (
+                <div className="controls">Controls</div>
+            )}
         </div>
     )
 }
