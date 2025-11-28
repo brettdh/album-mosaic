@@ -1,6 +1,6 @@
 import './App.css'
 import type { PartialMetadata } from '../lib/data'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 
 async function getMetadataFake(): Promise<PartialMetadata> {
@@ -36,7 +36,7 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    let audio: HTMLAudioElement | null
+    const audio = useRef<HTMLAudioElement | null>(null)
     const [activeSegment, setActiveSegment] = useState<[number, number] | null>(
         null,
     )
@@ -47,17 +47,17 @@ function App() {
         segmentNumber: number,
     ) {
         setActiveSegment([trackNumber, segmentNumber])
-        if (audio) {
-            audio.pause()
-            audio.src = audioUrl
+        if (audio.current) {
+            audio.current.pause()
+            audio.current.src = audioUrl
         } else {
-            audio = new Audio(audioUrl)
+            audio.current = new Audio(audioUrl)
         }
-        audio.play()
+        audio.current.play()
 
         const playbackEnded = () => setActiveSegment(null)
-        audio.addEventListener('ended', playbackEnded)
-        audio.addEventListener('pause', playbackEnded)
+        audio.current.addEventListener('ended', playbackEnded)
+        audio.current.addEventListener('pause', playbackEnded)
     }
 
     const segmentIsPlaying = useCallback(
