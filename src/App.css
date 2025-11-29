@@ -18,6 +18,8 @@ body {
     position: absolute;
     right: 32px;
     bottom: 32px;
+    display: flex;
+    flex-direction: column;
 }
 
 .cover {
@@ -37,15 +39,21 @@ body {
     transition: all 0.3s ease-in-out;
 }
 
-.tile:hover,
-.tile.playing {
+.tile.empty {
+    border-style: dashed;
+    border-width: 0.5px;
+    margin: -0.5px;
+}
+
+.tile.filled:hover,
+.tile.filled.playing {
     border: 10px;
     border-color: #fff;
     transform: scale(1.2, 1.2);
 }
 
 /* Pre-render the bigger shadow, but hide it */
-.tile::after {
+.tile.filled::after {
     content: '';
     position: absolute;
     z-index: -1;
@@ -60,7 +68,7 @@ body {
 }
 
 /* Transition to showing the bigger shadow on hover */
-.tile:hover::after,
-.tile.playing::after {
+.tile.filled:hover::after,
+.tile.filled.playing::after {
     opacity: 1;
 }
