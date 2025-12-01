@@ -40,9 +40,7 @@ body {
 }
 
 .tile.empty {
-    border-style: dashed;
-    border-width: 0.5px;
-    margin: -0.5px;
+    background-color: #222;
 }
 
 .tile.filled:hover,
