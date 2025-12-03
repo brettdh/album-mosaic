@@ -2,29 +2,6 @@ import './App.css'
 import type { PartialMetadata } from '../lib/data'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
-import random from 'random'
-
-import fullMetadata from '../public/build/metadata.json'
-
-async function getMetadataFake(progress: number): Promise<PartialMetadata> {
-    // TODO: replace with API fetch
-    const metadata = structuredClone(fullMetadata) as PartialMetadata
-
-    const segmentsFlat = metadata.tracks.map(({ segments }) => segments).flat()
-
-    const seed = 42
-    const prng = random.clone(seed)
-    const sampleSize = Math.ceil((1 - progress / 100) * segmentsFlat.length)
-
-    const sample = prng.sample(segmentsFlat, sampleSize)
-
-    for (const segment of sample) {
-        segment.audioUrl = undefined
-        segment.imageUrl = undefined
-    }
-
-    return metadata
-}
 
 function App() {
     const windowSize = useWindowSize()
@@ -83,8 +60,17 @@ function App() {
         [activeSegment],
     )
 
+    const fetchMetadata = useCallback(
+        async (progress: number) => {
+            fetch(`/metadata?progress=${progress}`).then(async (response) => {
+                setMediaMetadata(await response.json())
+            })
+        },
+        [setMediaMetadata],
+    )
+
     useEffect(() => {
-        getMetadataFake(100).then((metadata) => setMediaMetadata(metadata))
+        fetchMetadata(100)
     }, [])
     const [progress, setProgress] = useState(100)
 
@@ -154,9 +140,7 @@ function App() {
                     <button
                         value="Update"
                         onClick={() => {
-                            getMetadataFake(progress).then((metadata) =>
-                                setMediaMetadata(metadata),
-                            )
+                            fetchMetadata(progress)
                         }}
                     >
                         Update

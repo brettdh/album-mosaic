@@ -26,3 +26,6 @@ dist-ssr
 # App-local files
 media
 out
+
+# Local Netlify folder
+.netlify
