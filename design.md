@@ -1,4 +1,4 @@
-# Album Tessellator - Design
+# Album Mosaic - Design
 
 The basic idea is that a user visiting the page will receive a randomized sample of audio
 from each track in the album being previewed - one very short snippet per track (e.g. 1 second).
