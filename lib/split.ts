@@ -50,21 +50,6 @@ const pathExistsPredicate =
 const fileExists = pathExistsPredicate(false)
 const directoryExists = pathExistsPredicate(true)
 
-function emptyOrAbsentDirectory(value: string): string {
-    if (fs.pathExistsSync(value)) {
-        const stat = fs.lstatSync(value)
-        if (!stat.isDirectory()) {
-            throw new InvalidArgumentError('Path is not a directory')
-        }
-        const files = fs.readdirSync(value)
-        if (files.length !== 0) {
-            throw new InvalidArgumentError('Directory is not empty')
-        }
-    }
-
-    return value
-}
-
 program
     .requiredOption(
         '--image <path>',
@@ -232,7 +217,7 @@ const trackMetadata = await Promise.all(
         })
 
         // We did the audio splitting first, because we can get a different number of chunks
-        // than we asked for, based on bit rate considerations. We then use the number of cunks
+        // than we asked for, based on bit rate considerations. We then use the number of chunks
         // that we got and split the image strip into the same number.
 
         const imageStripChunks = await Promise.all(

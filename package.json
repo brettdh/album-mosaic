@@ -11,6 +11,7 @@
         "lint": "eslint .",
         "preview": "vite preview",
         "split": "ts-node ./lib/split.ts",
+        "update": "ts-node ./lib/update.ts",
         "validate": "ts-node ./lib/validate.ts"
     },
     "dependencies": {
@@ -21,9 +22,11 @@
         "react-dom": "^19.1.1"
     },
     "devDependencies": {
+        "@commander-js/extra-typings": "^14.0.0",
         "@eslint/js": "^9.36.0",
         "@types/cli-progress": "^3.11.6",
         "@types/fs-extra": "^11.0.4",
+        "@types/luxon": "^3.7.1",
         "@types/node": "^24.6.0",
         "@types/react": "^19.1.16",
         "@types/react-dom": "^19.1.9",
@@ -36,6 +39,7 @@
         "eslint-plugin-react-refresh": "^0.4.22",
         "fs-extra": "^11.3.2",
         "globals": "^16.4.0",
+        "luxon": "^3.7.2",
         "netlify-cli": "^23.12.2",
         "prettier": "^3.6.2",
         "rimraf": "^6.1.2",

@@ -1,20 +1,41 @@
 import random from 'random'
 
-import fullMetadata from '../..//public/build/metadata.json'
-import { PartialMetadata } from '../../lib/data'
+import { CompleteMetadata, PartialMetadata } from '../../lib/data'
 import { Config } from '@netlify/functions'
 
 export default async function (request: Request) {
-    const progress = parseFloat(
-        new URL(request.url).searchParams.get('progress') ?? '100',
-    )
-    const metadata = await getMetadataFake(progress)
-    return new Response(JSON.stringify(metadata))
+    const metadata = await getFullMetadata()
+    const progress = getProgress(request, metadata)
+
+    const filteredMetadata = await getMetadataFake(metadata, progress)
+    return new Response(JSON.stringify(filteredMetadata))
 }
 
-async function getMetadataFake(progress: number): Promise<PartialMetadata> {
-    const metadata = structuredClone(fullMetadata) as PartialMetadata
+async function getFullMetadata(): Promise<CompleteMetadata> {
+    if (process.env.CONTEXT === 'dev') {
+        const { default: fullMetadata } = await import(
+            '../../public/build/metadata.json'
+        )
+        const metadata = structuredClone(fullMetadata) as CompleteMetadata
+        return metadata
+    }
+    // TODO: implement fetching metadata from blob storage
+    throw new Error('not implemented')
+}
 
+function getProgress(request: Request, metadata: CompleteMetadata) {
+    if (process.env.CONTEXT === 'dev') {
+        const progressParam = new URL(request.url).searchParams.get('progress')
+        if (progressParam !== null) {
+        }
+    }
+}
+
+async function getMetadataFake(
+    completeMetadata: CompleteMetadata,
+    progress: number,
+): Promise<PartialMetadata> {
+    const metadata: PartialMetadata = completeMetadata
     const segmentsFlat = metadata.tracks.map(({ segments }) => segments).flat()
 
     const seed = 42
