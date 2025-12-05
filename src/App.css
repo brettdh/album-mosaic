@@ -70,3 +70,8 @@ body {
 .tile.filled.playing::after {
     opacity: 1;
 }
+
+#release-simulator {
+    display: flex;
+    flex-direction: column;
+}

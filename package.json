@@ -17,6 +17,7 @@
     "dependencies": {
         "@netlify/functions": "^5.1.0",
         "@uidotdev/usehooks": "^2.4.1",
+        "cache-parser": "^1.2.6",
         "random": "^5.4.1",
         "react": "^19.1.1",
         "react-dom": "^19.1.1"

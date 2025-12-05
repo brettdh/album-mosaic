@@ -2,6 +2,8 @@ import './App.css'
 import type { PartialMetadata } from '../lib/data'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
+import { parse } from 'cache-parser'
+import { DateTime } from 'luxon'
 
 function App() {
     const windowSize = useWindowSize()
@@ -60,18 +62,46 @@ function App() {
         [activeSegment],
     )
 
+    interface FetchParams {
+        progress?: number
+        releaseStart?: string
+        releaseEnd?: string
+    }
+
     const fetchMetadata = useCallback(
-        async (progress: number) => {
-            fetch(`/metadata?progress=${progress}`).then(async (response) => {
-                setMediaMetadata(await response.json())
-            })
+        async (params: FetchParams) => {
+            const stringParams = Object.entries(params)
+                .filter(([_, v]) => !!v)
+                .map(([k, v]) => [k, `${v}`])
+            const searchParams = new URLSearchParams(stringParams)
+            const response = await fetch(`/metadata?${searchParams.toString()}`)
+            const metadata: PartialMetadata = await response.json()
+            setMediaMetadata(metadata)
+
+            const start = DateTime.fromISO(
+                params.releaseStart ?? metadata.releaseStart,
+            )
+            const end = DateTime.fromISO(
+                params.releaseEnd ?? metadata.releaseEnd,
+            )
+            const now = DateTime.now()
+            if (start < now && now < end) {
+                const ccHeader = response.headers.get('cache-control')
+                if (ccHeader) {
+                    const { maxAge } = parse(ccHeader)
+                    if (maxAge) {
+                        setTimeout(() => fetchMetadata(params), maxAge * 1000)
+                    }
+                }
+            }
         },
         [setMediaMetadata],
     )
 
     useEffect(() => {
-        fetchMetadata(100)
+        fetchMetadata({ progress: 100 })
     }, [])
+    const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
     const [progress, setProgress] = useState(100)
 
     if (!mediaMetadata) {
@@ -140,10 +170,38 @@ function App() {
                     <button
                         value="Update"
                         onClick={() => {
-                            fetchMetadata(progress)
+                            fetchMetadata({ progress })
                         }}
                     >
                         Update
+                    </button>
+                    <div id="release-simulator">
+                        <label htmlFor="release-duration">
+                            Simulated release duration
+                        </label>
+                        <input
+                            id="release-duration"
+                            value={releaseDurationSeconds}
+                            onChange={(e) =>
+                                setReleaseDurationSeconds(
+                                    parseInt(e.target.value, 10),
+                                )
+                            }
+                        />
+                    </div>
+                    <button
+                        value="Simulate"
+                        onClick={() => {
+                            const releaseStart = DateTime.now().toISO()
+                            const releaseEnd = DateTime.now()
+                                .plus({
+                                    seconds: releaseDurationSeconds,
+                                })
+                                .toISO()
+                            fetchMetadata({ releaseStart, releaseEnd })
+                        }}
+                    >
+                        Simulate
                     </button>
                 </div>
             )}

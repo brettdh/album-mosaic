@@ -9,12 +9,6 @@ export interface Track {
     height: number
 }
 
-export interface PartialMetadata {
-    tracks: Track[]
-    totalWidth: number
-    totalHeight: number
-}
-
 export interface CompleteSegment {
     audioUrl: string
     imageUrl: string
@@ -39,4 +33,8 @@ export interface CompleteMetadata {
     // release duration; determines the rate at which new segments are released
     releaseStart: string // ISO 8601
     releaseEnd: string // ISO 8601
+}
+
+export type PartialMetadata = Omit<CompleteMetadata, 'tracks'> & {
+    tracks: Track[]
 }
