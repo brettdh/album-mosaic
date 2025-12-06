@@ -6,7 +6,7 @@ import { DateTime, Duration } from 'luxon'
 
 import type { CompleteMetadata } from './data.ts'
 
-function isoTimestamp(value: string, _): DateTime {
+function isoTimestamp(value: string): DateTime {
     try {
         return DateTime.fromISO(value)
     } catch (_) {
@@ -34,9 +34,9 @@ if (releaseEnd <= releaseStart) {
 
 const outDir = 'public/build'
 const metadataPath = path.join(outDir, 'metadata.json')
-const metadata: CompleteMetadata = JSON.parse(
+const metadata = JSON.parse(
     (await fs.readFile(metadataPath)).toString(),
-)
+) as CompleteMetadata
 metadata.releaseStart = releaseStart.toISO()!
 metadata.releaseEnd = releaseEnd.toISO()!
 

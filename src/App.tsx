@@ -1,9 +1,11 @@
 import './App.css'
 import type { PartialMetadata } from '../lib/data'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useMount } from '../lib/hooks'
+import { useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
 import { DateTime } from 'luxon'
+import toast, { Toaster } from 'react-hot-toast'
 
 function App() {
     const windowSize = useWindowSize()
@@ -35,7 +37,7 @@ function App() {
         null,
     )
 
-    function play(
+    async function play(
         audioUrl: string,
         trackNumber: number,
         segmentNumber: number,
@@ -47,11 +49,16 @@ function App() {
         } else {
             audio.current = new Audio(audioUrl)
         }
-        audio.current.play()
+        await audio.current.play()
 
         const playbackEnded = () => setActiveSegment(null)
         audio.current.addEventListener('ended', playbackEnded)
         audio.current.addEventListener('pause', playbackEnded)
+    }
+
+    function handlePlayError(e: Error) {
+        console.error('Error playing audio:', e)
+        toast.error('Error playing audio; please reload the page')
     }
 
     const segmentIsPlaying = useCallback(
@@ -75,7 +82,7 @@ function App() {
                 .map(([k, v]) => [k, `${v}`])
             const searchParams = new URLSearchParams(stringParams)
             const response = await fetch(`/metadata?${searchParams.toString()}`)
-            const metadata: PartialMetadata = await response.json()
+            const metadata = (await response.json()) as PartialMetadata
             setMediaMetadata(metadata)
 
             const start = DateTime.fromISO(
@@ -90,7 +97,9 @@ function App() {
                 if (ccHeader) {
                     const { maxAge } = parse(ccHeader)
                     if (maxAge) {
-                        setTimeout(() => fetchMetadata(params), maxAge * 1000)
+                        setTimeout(() => {
+                            fetchMetadata(params).catch(handleFetchError)
+                        }, maxAge * 1000)
                     }
                 }
             }
@@ -98,9 +107,14 @@ function App() {
         [setMediaMetadata],
     )
 
-    useEffect(() => {
-        fetchMetadata({ progress: 100 })
-    }, [])
+    function handleFetchError(e: Error) {
+        console.error('Error fetching metadata', e)
+        toast.error('Error loading data; please reload the page')
+    }
+
+    useMount(() => {
+        fetchMetadata({ progress: 100 }).catch(handleFetchError)
+    })
     const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
     const [progress, setProgress] = useState(100)
 
@@ -109,6 +123,9 @@ function App() {
     }
     return (
         <div className="container">
+            <div>
+                <Toaster position="top-right" />
+            </div>
             <div
                 className="cover"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
@@ -120,9 +137,13 @@ function App() {
                                 <a
                                     key={`segment-${i}-${j}`}
                                     href="#!"
-                                    onClick={() =>
-                                        audioUrl && play(audioUrl, i, j)
-                                    }
+                                    onClick={() => {
+                                        if (audioUrl) {
+                                            play(audioUrl, i, j).catch(
+                                                handlePlayError,
+                                            )
+                                        }
+                                    }}
                                 >
                                     <div
                                         className={`tile filled ${segmentIsPlaying(i, j) ? 'playing' : ''}`}
@@ -170,7 +191,7 @@ function App() {
                     <button
                         value="Update"
                         onClick={() => {
-                            fetchMetadata({ progress })
+                            fetchMetadata({ progress }).catch(handleFetchError)
                         }}
                     >
                         Update
@@ -198,7 +219,9 @@ function App() {
                                     seconds: releaseDurationSeconds,
                                 })
                                 .toISO()
-                            fetchMetadata({ releaseStart, releaseEnd })
+                            fetchMetadata({ releaseStart, releaseEnd }).catch(
+                                handleFetchError,
+                            )
                         }}
                     >
                         Simulate

@@ -4,20 +4,20 @@ import os from 'os'
 import path from 'path'
 import util from 'util'
 
-import { program, InvalidArgumentError } from 'commander'
+import { program, InvalidArgumentError } from '@commander-js/extra-typings'
 import fs from 'fs-extra'
 import cliProgress from 'cli-progress'
 import { rimraf } from 'rimraf'
 
 import { durationToSeconds, getDuration } from './audio.ts'
-import type { PartialMetadata } from './data.ts'
+import type { GeneratedMetadata } from './data.ts'
 
 const exec = util.promisify(execOrig)
 const glob = util.promisify(fs.glob)
 
 import sharp from 'sharp'
 
-function positiveNumeric(value: string, _): number {
+function positiveNumeric(value: string): number {
     const parsedValue = parseInt(value, 10)
     if (isNaN(parsedValue)) {
         throw new InvalidArgumentError('Not a number.')
@@ -50,7 +50,7 @@ const pathExistsPredicate =
 const fileExists = pathExistsPredicate(false)
 const directoryExists = pathExistsPredicate(true)
 
-program
+const command = program
     .requiredOption(
         '--image <path>',
         'Path to album cover image file',
@@ -68,8 +68,8 @@ program
         1,
     )
 
-program.parse()
-const options = program.opts()
+command.parse()
+const options = command.opts()
 
 const outDir = 'public/build'
 if (await fs.pathExists(outDir)) {
@@ -280,10 +280,15 @@ const trackMetadata = await Promise.all(
 // stop all bars
 progress.stop()
 
+const segmentCount = trackMetadata
+    .map(({ segments }) => segments.length)
+    .reduce((a, b) => a + b, 0)
+
 const metadataPath = path.join(outDir, 'metadata.json')
-const metadata: PartialMetadata = {
+const metadata: GeneratedMetadata = {
     tracks: trackMetadata,
     totalWidth: imageMetadata.width,
     totalHeight: imageMetadata.height,
+    segmentCount,
 }
 await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))

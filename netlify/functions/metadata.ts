@@ -1,14 +1,14 @@
 import random from 'random'
 
-import { CompleteMetadata, PartialMetadata } from '../../lib/data'
-import { Config } from '@netlify/functions'
+import type { CompleteMetadata, PartialMetadata } from '../../lib/data'
+import type { Config } from '@netlify/functions'
 import { DateTime } from 'luxon'
 
 export default async function (request: Request) {
     const metadata = await getFullMetadata()
     const { percentReleased, refreshInSeconds } = getProgress(request, metadata)
 
-    const filteredMetadata = await getPartialMetadata(metadata, percentReleased)
+    const filteredMetadata = getPartialMetadata(metadata, percentReleased)
     const directives = refreshInSeconds
         ? `max-age=${refreshInSeconds}`
         : `max-age=604800, must-revalidate`
@@ -81,10 +81,10 @@ function getProgress(request: Request, metadata: CompleteMetadata): Progress {
     return { percentReleased, refreshInSeconds }
 }
 
-async function getPartialMetadata(
+function getPartialMetadata(
     completeMetadata: CompleteMetadata,
     progress: number,
-): Promise<PartialMetadata> {
+): PartialMetadata {
     const metadata: PartialMetadata = completeMetadata
     const segmentsFlat = metadata.tracks.map(({ segments }) => segments).flat()
 

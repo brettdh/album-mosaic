@@ -38,3 +38,8 @@ export interface CompleteMetadata {
 export type PartialMetadata = Omit<CompleteMetadata, 'tracks'> & {
     tracks: Track[]
 }
+
+export type GeneratedMetadata = Omit<
+    CompleteMetadata,
+    'releaseStart' | 'releaseEnd'
+>
