@@ -284,7 +284,8 @@ const segmentCount = trackMetadata
     .map(({ segments }) => segments.length)
     .reduce((a, b) => a + b, 0)
 
-const metadataPath = path.join(outDir, 'metadata.json')
+const buildDir = 'build'
+const metadataPath = path.join(buildDir, 'metadata.json')
 const metadata: GeneratedMetadata = {
     tracks: trackMetadata,
     totalWidth: imageMetadata.width,

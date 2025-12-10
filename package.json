@@ -12,9 +12,13 @@
         "preview": "vite preview",
         "split": "ts-node ./lib/split.ts",
         "update": "ts-node ./lib/update.ts",
-        "validate": "ts-node ./lib/validate.ts"
+        "validate": "ts-node ./lib/validate.ts",
+        "prod:build": "netlify build",
+        "dev:deploy": "netlify deploy",
+        "prod:deploy": "netlify deploy --prod"
     },
     "dependencies": {
+        "@netlify/blobs": "^10.4.3",
         "@netlify/functions": "^5.1.0",
         "@uidotdev/usehooks": "^2.4.1",
         "cache-parser": "^1.2.6",

@@ -1,6 +1,8 @@
+import fs from 'fs-extra'
 import random from 'random'
 
 import type { CompleteMetadata, PartialMetadata } from '../../lib/data'
+// import { getDeployStore } from '@netlify/blobs'
 import type { Config } from '@netlify/functions'
 import { DateTime } from 'luxon'
 
@@ -21,14 +23,16 @@ export default async function (request: Request) {
 
 async function getFullMetadata(): Promise<CompleteMetadata> {
     if (process.env.CONTEXT === 'dev') {
-        const { default: fullMetadata } = await import(
-            '../../public/build/metadata.json'
-        )
-        const metadata = structuredClone(fullMetadata) as CompleteMetadata
+        const metadataPath = '../../build/metadata.json'
+        const fullMetadata = JSON.parse(
+            (await fs.readFile(metadataPath)).toString(),
+        ) as CompleteMetadata
+        const metadata = structuredClone(fullMetadata)
         return metadata
     }
-    // TODO: implement fetching metadata from blob storage
-    throw new Error('not implemented')
+
+    // const store = getDeployStore()
+    throw new Error('WIP')
 }
 
 interface Progress {

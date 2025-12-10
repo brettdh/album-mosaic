@@ -32,8 +32,8 @@ if (releaseEnd <= releaseStart) {
     throw new InvalidArgumentError('releaseEnd must be after releaseStart')
 }
 
-const outDir = 'public/build'
-const metadataPath = path.join(outDir, 'metadata.json')
+const buildDir = 'build'
+const metadataPath = path.join(buildDir, 'metadata.json')
 const metadata = JSON.parse(
     (await fs.readFile(metadataPath)).toString(),
 ) as CompleteMetadata
