@@ -1,29 +1,41 @@
 import fs from 'fs-extra'
 import random from 'random'
 
-import type { CompleteMetadata, PartialMetadata } from '../../lib/data'
-// import { getDeployStore } from '@netlify/blobs'
-import type { Config } from '@netlify/functions'
+import type { CompleteMetadata, PartialMetadata } from '../lib/data'
 import { DateTime } from 'luxon'
+import { getEnv } from '@vercel/functions'
 
-export default async function (request: Request) {
-    const metadata = await getFullMetadata()
-    const { percentReleased, refreshInSeconds } = getProgress(request, metadata)
+export default {
+    async fetch(request: Request) {
+        const metadata = await getFullMetadata()
+        const { percentReleased, refreshInSeconds } = getProgress(
+            request,
+            metadata,
+        )
 
-    const filteredMetadata = getPartialMetadata(metadata, percentReleased)
-    const directives = refreshInSeconds
-        ? `max-age=${refreshInSeconds}`
-        : `max-age=604800, must-revalidate`
-    return new Response(JSON.stringify(filteredMetadata), {
-        headers: {
-            'Cache-control': `public, ${directives}`,
-        },
-    })
+        const filteredMetadata = getPartialMetadata(metadata, percentReleased)
+        const directives = refreshInSeconds
+            ? `max-age=${refreshInSeconds}`
+            : `max-age=604800, must-revalidate`
+        return new Response(JSON.stringify(filteredMetadata), {
+            headers: {
+                'Cache-control': `public, ${directives}`,
+            },
+        })
+    },
+}
+
+function isDev() {
+    // VERCEL_ENV is undefined here, so we use VERCEL_REGION instead
+    // https://github.com/vercel/vercel/issues/14450
+    const env = getEnv()
+    const { VERCEL_REGION } = env
+    return VERCEL_REGION?.startsWith('dev')
 }
 
 async function getFullMetadata(): Promise<CompleteMetadata> {
-    if (process.env.CONTEXT === 'dev') {
-        const metadataPath = '../../build/metadata.json'
+    if (isDev()) {
+        const metadataPath = './build/metadata.json'
         const fullMetadata = JSON.parse(
             (await fs.readFile(metadataPath)).toString(),
         ) as CompleteMetadata
@@ -31,8 +43,14 @@ async function getFullMetadata(): Promise<CompleteMetadata> {
         return metadata
     }
 
-    // const store = getDeployStore()
-    throw new Error('WIP')
+    const blobUrl = process.env.METADATA_BLOB_URL
+    if (!blobUrl) {
+        throw new Error('METADATA_BLOB_URL is undefined')
+    }
+
+    const response = await fetch(blobUrl)
+    const metadata = (await response.json()) as CompleteMetadata
+    return metadata
 }
 
 interface Progress {
@@ -42,13 +60,13 @@ interface Progress {
 
 function getProgress(request: Request, metadata: CompleteMetadata): Progress {
     let { releaseStart, releaseEnd } = metadata
-    if (process.env.CONTEXT === 'dev') {
+    if (isDev()) {
         const params = new URL(request.url).searchParams
         const progressParam = params.get('progress')
         if (progressParam !== null) {
             return {
                 percentReleased: parseFloat(progressParam),
-                refreshInSeconds: 0,
+                refreshInSeconds: null,
             }
         }
         const startParam = params.get('releaseStart')
@@ -104,8 +122,4 @@ function getPartialMetadata(
     }
 
     return metadata
-}
-
-export const config: Config = {
-    path: '/metadata',
 }

@@ -36,7 +36,7 @@ body {
 .tile {
     padding: 0;
     margin: 0;
-    transition: all 0.3s ease-in-out;
+    transition: transform 0.3s ease-in-out;
 }
 
 .tile.empty {
@@ -44,7 +44,8 @@ body {
 }
 
 .tile.filled:hover,
-.tile.filled.playing {
+.tile.filled.playing,
+.tile.filled.new {
     border: 10px;
     border-color: #fff;
     transform: scale(1.2, 1.2);
@@ -67,7 +68,8 @@ body {
 
 /* Transition to showing the bigger shadow on hover */
 .tile.filled:hover::after,
-.tile.filled.playing::after {
+.tile.filled.playing::after,
+.tile.filled.new::after {
     opacity: 1;
 }
 

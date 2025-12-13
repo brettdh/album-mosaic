@@ -67,11 +67,21 @@ const command = program
         positiveNumeric,
         1,
     )
+    .option(
+        '--out-dir <path>',
+        'Output directory for media files',
+        'public/build',
+    )
+    .option(
+        '--build-dir <path>',
+        'Path where metadata.json will be written',
+        'build',
+    )
 
 command.parse()
 const options = command.opts()
 
-const outDir = 'public/build'
+const outDir = options.outDir
 if (await fs.pathExists(outDir)) {
     await rimraf(outDir)
 }
@@ -202,8 +212,8 @@ const trackMetadata = await Promise.all(
             await exec(
                 `ffmpeg -f concat -safe 0 -i ${inputFile} -c copy ${lastFile}`,
             )
-            audioFiles.pop()
-            audioFiles.pop()
+            await fs.remove(audioFiles.pop()!)
+            await fs.remove(audioFiles.pop()!)
             audioFiles.push(lastFile)
             await fs.remove(inputFile)
             await fs.rmdir(tmpdir)
@@ -284,7 +294,7 @@ const segmentCount = trackMetadata
     .map(({ segments }) => segments.length)
     .reduce((a, b) => a + b, 0)
 
-const buildDir = 'build'
+const buildDir = options.buildDir
 const metadataPath = path.join(buildDir, 'metadata.json')
 const metadata: GeneratedMetadata = {
     tracks: trackMetadata,

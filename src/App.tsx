@@ -81,7 +81,9 @@ function App() {
                 .filter(([_, v]) => !!v)
                 .map(([k, v]) => [k, `${v}`])
             const searchParams = new URLSearchParams(stringParams)
-            const response = await fetch(`/metadata?${searchParams.toString()}`)
+            const response = await fetch(
+                `/api/metadata?${searchParams.toString()}`,
+            )
             const metadata = (await response.json()) as PartialMetadata
             setMediaMetadata(metadata)
 
