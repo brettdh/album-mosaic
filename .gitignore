@@ -27,7 +27,9 @@ dist-ssr
 media
 out
 
-# Local Netlify folder
-.netlify
-.vercel
-.env*.local
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example

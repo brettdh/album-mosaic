@@ -1,56 +1,49 @@
-import fs from 'fs-extra'
 import random from 'random'
 
 import type { CompleteMetadata, PartialMetadata } from '../lib/data'
 import { DateTime } from 'luxon'
-import { getEnv } from '@vercel/functions'
 
 export default {
-    async fetch(request: Request) {
-        const metadata = await getFullMetadata()
-        const { percentReleased, refreshInSeconds } = getProgress(
-            request,
-            metadata,
-        )
+    async fetch(request: Request, env: Env): Promise<Response> {
+        const url = new URL(request.url)
+        if (url.pathname.startsWith('/api')) {
+            const metadata = await getFullMetadata(env)
+            const { percentReleased, refreshInSeconds } = getProgress(
+                request,
+                metadata,
+            )
 
-        const filteredMetadata = getPartialMetadata(metadata, percentReleased)
-        const directives = refreshInSeconds
-            ? `max-age=${refreshInSeconds}`
-            : `max-age=604800, must-revalidate`
-        return new Response(JSON.stringify(filteredMetadata), {
-            headers: {
-                'Cache-control': `public, ${directives}`,
-            },
-        })
+            const filteredMetadata = getPartialMetadata(
+                metadata,
+                percentReleased,
+            )
+            const directives = refreshInSeconds
+                ? `max-age=${refreshInSeconds}`
+                : `max-age=604800, must-revalidate`
+            return Response.json(filteredMetadata, {
+                headers: {
+                    'Cache-control': `public, ${directives}`,
+                },
+            })
+        }
+
+        return env.ASSETS.fetch(request)
     },
-}
+} satisfies ExportedHandler<Env>
 
 function isDev() {
-    // VERCEL_ENV is undefined here, so we use VERCEL_REGION instead
-    // https://github.com/vercel/vercel/issues/14450
-    const env = getEnv()
-    const { VERCEL_REGION } = env
-    return VERCEL_REGION?.startsWith('dev')
+    return import.meta.env.DEV
 }
 
-async function getFullMetadata(): Promise<CompleteMetadata> {
-    if (isDev()) {
-        const metadataPath = './build/metadata.json'
-        const fullMetadata = JSON.parse(
-            (await fs.readFile(metadataPath)).toString(),
-        ) as CompleteMetadata
-        const metadata = structuredClone(fullMetadata)
-        return metadata
+async function getFullMetadata(env: Env): Promise<CompleteMetadata> {
+    const metadataBody = await env.metadata_bucket.get('metadata.json')
+    if (!metadataBody) {
+        throw new Error('Failed to get data from metadata bucket')
     }
+    const metadata = await metadataBody.json()
 
-    const blobUrl = process.env.METADATA_BLOB_URL
-    if (!blobUrl) {
-        throw new Error('METADATA_BLOB_URL is undefined')
-    }
-
-    const response = await fetch(blobUrl)
-    const metadata = (await response.json()) as CompleteMetadata
-    return metadata
+    // TODO: use zod or something to validate this and generate a typed object
+    return metadata as CompleteMetadata
 }
 
 interface Progress {
