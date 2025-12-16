@@ -6,7 +6,7 @@ import { DateTime } from 'luxon'
 export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url)
-        if (url.pathname.startsWith('/api')) {
+        if (url.pathname === '/api/metadata') {
             const metadata = await getFullMetadata(env)
             const { percentReleased, refreshInSeconds } = getProgress(
                 request,
@@ -17,6 +17,7 @@ export default {
                 metadata,
                 percentReleased,
             )
+            // TODO: calcuate better max-age if the release hasn't begun yet
             const directives = refreshInSeconds
                 ? `max-age=${refreshInSeconds}`
                 : `max-age=604800, must-revalidate`

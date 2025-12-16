@@ -9,14 +9,14 @@
         "build": "tsc -b && vite build",
         "format": "prettier -w **/*.ts **/*.tsx",
         "lint": "eslint .",
-        "preview": "vite preview",
+        "preview": "npm run build && vite preview",
         "split": "ts-node ./lib/split.ts",
         "update": "ts-node ./lib/update.ts",
         "validate": "ts-node ./lib/validate.ts",
-        "deploy:dev": "vercel --archive=tgz",
-        "deploy:prod": "npm run deploy:dev -- --prod",
-        "deploy-metadata": "wrangler r2 object put metadata/metadata.json --file build/metadata.json",
-        "deploy-metadata:dev": "npm run deploy-metadata -- --local"
+        "deploy": "npm run build && wrangler deploy",
+        "deploy-metadata:base": "wrangler r2 object put metadata/metadata.json --file build/metadata.json",
+        "deploy-metadata:dev": "npm run deploy-metadata:base -- --local",
+        "deploy-metadata": "npm run deploy-metadata:base -- --remote"
     },
     "dependencies": {
         "@uidotdev/usehooks": "^2.4.1",

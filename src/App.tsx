@@ -76,7 +76,7 @@ function App() {
     }
 
     const fetchMetadata = useCallback(
-        async (params: FetchParams) => {
+        async (params: FetchParams = {}) => {
             const stringParams = Object.entries(params)
                 .filter(([_, v]) => !!v)
                 .map(([k, v]) => [k, `${v}`])
@@ -115,7 +115,8 @@ function App() {
     }
 
     useMount(() => {
-        fetchMetadata({ progress: 100 }).catch(handleFetchError)
+        const params = import.meta.env.DEV ? { progress: 100 } : undefined
+        fetchMetadata(params).catch(handleFetchError)
     })
     const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
     const [progress, setProgress] = useState(100)
@@ -175,7 +176,7 @@ function App() {
                     </div>
                 ))}
             </div>
-            {import.meta.env.MODE === 'development' && (
+            {import.meta.env.DEV && (
                 <div className="controls">
                     <div>
                         {`Progress: ${progress.toFixed(2)}%`}
