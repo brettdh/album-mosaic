@@ -43,7 +43,6 @@ body {
     /* background-color: #222; */
 }
 
-.tile.filled:hover,
 .tile.filled.playing,
 .tile.filled.new {
     border: 10px;
@@ -67,10 +66,20 @@ body {
 }
 
 /* Transition to showing the bigger shadow on hover */
-.tile.filled:hover::after,
 .tile.filled.playing::after,
 .tile.filled.new::after {
     opacity: 1;
+}
+
+@media (hover: hover) {
+    .tile.filled:hover {
+        border: 10px;
+        border-color: #fff;
+        transform: scale(1.2, 1.2);
+    }
+    .tile.filled:hover::after {
+        opacity: 1;
+    }
 }
 
 #release-simulator {
