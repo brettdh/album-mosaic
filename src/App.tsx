@@ -23,8 +23,14 @@ function App() {
             }
 
             let scaleFactor = 1.0
-            if (mediaMetadata.totalHeight > windowSize.height) {
-                scaleFactor = windowSize.height / mediaMetadata.totalHeight
+            if (windowSize.width > windowSize.height) {
+                if (mediaMetadata.totalHeight > windowSize.height) {
+                    scaleFactor = windowSize.height / mediaMetadata.totalHeight
+                }
+            } else {
+                if (mediaMetadata.totalWidth > windowSize.width) {
+                    scaleFactor = windowSize.width / mediaMetadata.totalWidth
+                }
             }
 
             return scaleFactor * value
@@ -126,9 +132,7 @@ function App() {
     }
     return (
         <div className="container">
-            <div>
-                <Toaster position="top-right" />
-            </div>
+            <Toaster position="top-right" />
             <div
                 className="cover"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
@@ -149,7 +153,7 @@ function App() {
                                     }}
                                 >
                                     <div
-                                        className={`tile filled ${segmentIsPlaying(i, j) ? 'playing' : ''}`}
+                                        className={`tile filled${segmentIsPlaying(i, j) ? ' playing' : ''}`}
                                         style={{
                                             width: scale(width),
                                             height: scale(height),
