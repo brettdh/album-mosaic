@@ -4,7 +4,7 @@ import { useMount } from '../lib/hooks'
 import { useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
-import { DateTime } from 'luxon'
+import { DateTime, Duration } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 
 function App() {
@@ -81,8 +81,15 @@ function App() {
         releaseEnd?: string
     }
 
+    const nextFetchTimeout = useRef<ReturnType<typeof setTimeout>>(undefined)
+
     const fetchMetadata = useCallback(
         async (params: FetchParams = {}) => {
+            if (nextFetchTimeout.current) {
+                clearTimeout(nextFetchTimeout.current)
+                nextFetchTimeout.current = undefined
+            }
+
             const stringParams = Object.entries(params)
                 .filter(([_, v]) => !!v)
                 .map(([k, v]) => [k, `${v}`])
@@ -91,21 +98,32 @@ function App() {
                 `/api/metadata?${searchParams.toString()}`,
             )
             const metadata = (await response.json()) as PartialMetadata
+
+            if (params.releaseStart) {
+                metadata.releaseStart = params.releaseStart
+            }
+            if (params.releaseEnd) {
+                metadata.releaseEnd = params.releaseEnd
+            }
             setMediaMetadata(metadata)
 
-            const start = DateTime.fromISO(
-                params.releaseStart ?? metadata.releaseStart,
-            )
-            const end = DateTime.fromISO(
-                params.releaseEnd ?? metadata.releaseEnd,
-            )
+            if (params.progress !== undefined) {
+                return
+            }
+
+            const start = DateTime.fromISO(metadata.releaseStart)
+            const end = DateTime.fromISO(metadata.releaseEnd)
+
             const now = DateTime.now()
             if (start < now && now < end) {
                 const ccHeader = response.headers.get('cache-control')
                 if (ccHeader) {
                     const { maxAge } = parse(ccHeader)
                     if (maxAge) {
-                        setTimeout(() => {
+                        setNextFetchTime(
+                            DateTime.now().plus({ seconds: maxAge }),
+                        )
+                        nextFetchTimeout.current = setTimeout(() => {
                             fetchMetadata(params).catch(handleFetchError)
                         }, maxAge * 1000)
                     }
@@ -120,10 +138,37 @@ function App() {
         toast.error('Error loading data; please reload the page')
     }
 
+    const [nextFetchTime, setNextFetchTime] = useState<DateTime | null>(null)
+    const [currentTime, setCurrentTime] = useState(DateTime.now())
     useMount(() => {
         const params = import.meta.env.DEV ? { progress: 100 } : undefined
         fetchMetadata(params).catch(handleFetchError)
+        setInterval(() => setCurrentTime(DateTime.now()), 1000)
     })
+
+    const timeUntilRelease = useCallback(() => {
+        if (!mediaMetadata) {
+            return ''
+        }
+        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
+        if (currentTime >= end) {
+            return `Completed ${end.toRelative()}`
+        }
+        return `Complete  ${end.toRelative({ rounding: 'ceil' })}`
+    }, [mediaMetadata, currentTime])
+
+    const timeUntilNextChunk = useCallback(() => {
+        if (!mediaMetadata || !nextFetchTime) {
+            return ''
+        }
+        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
+        if (nextFetchTime >= end) {
+            return ''
+        }
+        const rounded = nextFetchTime.toRelative({ rounding: 'round' })
+        return `Next chunk ${rounded}`
+    }, [mediaMetadata, nextFetchTime])
+
     const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
     const [progress, setProgress] = useState(100)
 
@@ -179,6 +224,11 @@ function App() {
                         )}
                     </div>
                 ))}
+            </div>
+            <div className="countdowns">
+                <h3>Release Progress</h3>
+                <span>{timeUntilRelease()}</span>
+                <span>{timeUntilNextChunk()}</span>
             </div>
             {import.meta.env.DEV && (
                 <div className="controls">
