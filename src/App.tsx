@@ -1,11 +1,16 @@
 import './App.css'
-import type { PartialMetadata } from '../lib/data'
+import {
+    isComplete,
+    type NumberedCompleteSegment,
+    type PartialMetadata,
+} from '../lib/data'
 import { useMount } from '../lib/hooks'
-import { useCallback, useRef, useState } from 'react'
+import { useEffect, useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
-import { DateTime, Duration } from 'luxon'
+import { DateTime } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
+import random from 'random'
 
 function App() {
     const windowSize = useWindowSize()
@@ -38,29 +43,47 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    const audio = useRef<HTMLAudioElement | null>(null)
+    const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
     const [activeSegment, setActiveSegment] = useState<[number, number] | null>(
         null,
     )
 
-    async function play(
-        audioUrl: string,
-        trackNumber: number,
-        segmentNumber: number,
-    ) {
-        setActiveSegment([trackNumber, segmentNumber])
-        if (audio.current) {
-            audio.current.pause()
-            audio.current.src = audioUrl
-        } else {
-            audio.current = new Audio(audioUrl)
-        }
-        await audio.current.play()
+    const play = useCallback(
+        async (
+            audioUrl: string,
+            trackNumber: number,
+            segmentNumber: number,
+        ) => {
+            setActiveSegment([trackNumber, segmentNumber])
+            let localAudio = audio
+            if (localAudio) {
+                localAudio.pause()
+                localAudio.src = audioUrl
+            } else {
+                localAudio = new Audio(audioUrl)
+            }
+            await localAudio.play()
 
-        const playbackEnded = () => setActiveSegment(null)
-        audio.current.addEventListener('ended', playbackEnded)
-        audio.current.addEventListener('pause', playbackEnded)
-    }
+            if (!audio) {
+                setAudio(localAudio)
+            }
+
+            const playbackEnded = () => setActiveSegment(null)
+            return new Promise((resolve) => {
+                for (const handler of [playbackEnded, resolve]) {
+                    localAudio?.addEventListener('ended', handler)
+                    localAudio?.addEventListener('pause', handler)
+                }
+            })
+        },
+        [audio, setAudio],
+    )
+
+    const pause = useCallback(() => {
+        if (audio) {
+            audio.pause()
+        }
+    }, [audio])
 
     function handlePlayError(e: Error) {
         console.error('Error playing audio:', e)
@@ -74,6 +97,42 @@ function App() {
             activeSegment[1] === segmentNumber,
         [activeSegment],
     )
+
+    const [randomChunks, setRandomChunks] = useState<NumberedCompleteSegment[]>(
+        [],
+    )
+
+    function playRandom(numChunks: number) {
+        const availableSegments =
+            mediaMetadata?.tracks.flatMap((track, trackNum) =>
+                track.segments
+                    .map((segment, segmentNum) => ({
+                        ...segment,
+                        trackNum,
+                        segmentNum,
+                    }))
+                    .filter(isComplete),
+            ) ?? []
+
+        const chunks = random.sample(availableSegments, numChunks)
+        setRandomChunks(chunks)
+    }
+
+    useEffect(() => {
+        async function playNextRandom() {
+            const [chunk, ...remaining] = randomChunks
+            if (chunk) {
+                await play(chunk.audioUrl, chunk.trackNum, chunk.segmentNum)
+                setRandomChunks((current) => {
+                    if (current.length === 0) {
+                        return current
+                    }
+                    return remaining
+                })
+            }
+        }
+        playNextRandom().catch(handlePlayError)
+    }, [play, randomChunks, setRandomChunks])
 
     interface FetchParams {
         progress?: number
@@ -229,6 +288,23 @@ function App() {
                 <h3>Release Progress</h3>
                 <span>{timeUntilRelease()}</span>
                 <span>{timeUntilNextChunk()}</span>
+            </div>
+            <div className="actions">
+                {randomChunks.length > 0 ? (
+                    <button
+                        value="stopRandom"
+                        onClick={() => {
+                            setRandomChunks([])
+                            pause()
+                        }}
+                    >
+                        Stop Playback
+                    </button>
+                ) : (
+                    <button value="random" onClick={() => playRandom(5)}>
+                        Play 5 random chunks
+                    </button>
+                )}
             </div>
             {import.meta.env.DEV && (
                 <div className="controls">

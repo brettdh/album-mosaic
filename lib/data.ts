@@ -43,3 +43,19 @@ export type GeneratedMetadata = Omit<
     CompleteMetadata,
     'releaseStart' | 'releaseEnd'
 >
+
+export interface NumberedSegment extends Segment {
+    trackNum: number
+    segmentNum: number
+}
+
+export interface NumberedCompleteSegment extends CompleteSegment {
+    trackNum: number
+    segmentNum: number
+}
+
+export function isComplete(
+    segment: NumberedSegment,
+): segment is NumberedCompleteSegment {
+    return !!segment.audioUrl && !!segment.imageUrl
+}

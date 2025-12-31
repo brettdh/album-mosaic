@@ -23,6 +23,15 @@ body {
     align-items: flex-end;
 }
 
+.actions {
+    position: absolute;
+    right: 16px;
+    top: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
 .controls {
     position: absolute;
     right: 32px;
