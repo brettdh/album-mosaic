@@ -8,7 +8,7 @@ import { useMount } from '../lib/hooks'
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
-import { DateTime } from 'luxon'
+import { DateTime, Duration } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
 
@@ -200,10 +200,28 @@ function App() {
     const [nextFetchTime, setNextFetchTime] = useState<DateTime | null>(null)
     const [currentTime, setCurrentTime] = useState(DateTime.now())
     useMount(() => {
-        const params = import.meta.env.DEV ? { progress: 100 } : undefined
-        fetchMetadata(params).catch(handleFetchError)
+        fetchMetadata().catch(handleFetchError)
         setInterval(() => setCurrentTime(DateTime.now()), 1000)
     })
+
+    const percentComplete = useCallback(() => {
+        if (!mediaMetadata) {
+            return ''
+        }
+        const start = DateTime.fromISO(mediaMetadata.releaseStart)
+        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
+        let perc: number
+        if (currentTime >= end) {
+            perc = 100
+        } else if (currentTime <= start) {
+            perc = 0
+        } else {
+            perc =
+                100 *
+                (end.diff(currentTime).toMillis() / end.diff(start).toMillis())
+        }
+        return `${perc.toFixed(2)}% complete`
+    }, [mediaMetadata, currentTime])
 
     const timeUntilRelease = useCallback(() => {
         if (!mediaMetadata) {
@@ -224,8 +242,14 @@ function App() {
         if (nextFetchTime >= end) {
             return ''
         }
-        const rounded = nextFetchTime.toRelative({ rounding: 'round' })
-        return `Next chunk ${rounded}`
+        const duration = nextFetchTime.diffNow()
+        let countdown: string
+        if (duration > Duration.fromObject({ hours: 1 })) {
+            countdown = duration.toFormat('hh:mm:ss')
+        } else {
+            countdown = duration.toFormat('mm:ss')
+        }
+        return `Next chunk in ${countdown}`
     }, [mediaMetadata, nextFetchTime])
 
     const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
@@ -286,6 +310,7 @@ function App() {
             </div>
             <div className="countdowns">
                 <h3>Release Progress</h3>
+                <span>{percentComplete()}</span>
                 <span>{timeUntilRelease()}</span>
                 <span>{timeUntilNextChunk()}</span>
             </div>
@@ -322,12 +347,20 @@ function App() {
                         />
                     </div>
                     <button
-                        value="Update"
+                        value="Override"
                         onClick={() => {
                             fetchMetadata({ progress }).catch(handleFetchError)
                         }}
                     >
-                        Update
+                        Override
+                    </button>
+                    <button
+                        value="Reset"
+                        onClick={() => {
+                            fetchMetadata().catch(handleFetchError)
+                        }}
+                    >
+                        Reset
                     </button>
                     <div id="release-simulator">
                         <label htmlFor="release-duration">
@@ -343,6 +376,7 @@ function App() {
                             }
                         />
                     </div>
+                    {/* TODO: Add some customization here; e.g. start date, end date */}
                     <button
                         value="Simulate"
                         onClick={() => {
