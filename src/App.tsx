@@ -218,7 +218,8 @@ function App() {
         } else {
             perc =
                 100 *
-                (end.diff(currentTime).toMillis() / end.diff(start).toMillis())
+                (currentTime.diff(start).toMillis() /
+                    end.diff(start).toMillis())
         }
         return `${perc.toFixed(2)}% complete`
     }, [mediaMetadata, currentTime])
