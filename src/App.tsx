@@ -43,7 +43,7 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    const [audio, setAudio] = useState<HTMLAudioElement | null>(null)
+    const [audio] = useState(new Audio())
     const [activeSegment, setActiveSegment] = useState<[number, number] | null>(
         null,
     )
@@ -55,28 +55,19 @@ function App() {
             segmentNumber: number,
         ) => {
             setActiveSegment([trackNumber, segmentNumber])
-            let localAudio = audio
-            if (localAudio) {
-                localAudio.pause()
-                localAudio.src = audioUrl
-            } else {
-                localAudio = new Audio(audioUrl)
-            }
-            await localAudio.play()
-
-            if (!audio) {
-                setAudio(localAudio)
-            }
+            audio.pause()
+            audio.src = audioUrl
+            await audio.play()
 
             const playbackEnded = () => setActiveSegment(null)
             return new Promise((resolve) => {
                 for (const handler of [playbackEnded, resolve]) {
-                    localAudio?.addEventListener('ended', handler)
-                    localAudio?.addEventListener('pause', handler)
+                    audio?.addEventListener('ended', handler)
+                    audio?.addEventListener('pause', handler)
                 }
             })
         },
-        [audio, setAudio],
+        [audio],
     )
 
     const pause = useCallback(() => {
@@ -103,16 +94,7 @@ function App() {
     )
 
     function playRandom(numChunks: number) {
-        const availableSegments =
-            mediaMetadata?.tracks.flatMap((track, trackNum) =>
-                track.segments
-                    .map((segment, segmentNum) => ({
-                        ...segment,
-                        trackNum,
-                        segmentNum,
-                    }))
-                    .filter(isComplete),
-            ) ?? []
+        const availableSegments = getAvailableSegments()
 
         const chunks = random.sample(availableSegments, numChunks)
         setRandomChunks(chunks)
@@ -177,20 +159,42 @@ function App() {
             if (start < now && now < end) {
                 const ccHeader = response.headers.get('cache-control')
                 if (ccHeader) {
-                    const { maxAge } = parse(ccHeader)
-                    if (maxAge) {
-                        setNextFetchTime(
-                            DateTime.now().plus({ seconds: maxAge }),
-                        )
+                    const dateHeader = response.headers.get('date')
+                    const responseDate = dateHeader
+                        ? DateTime.fromHTTP(dateHeader)
+                        : null
+
+                    const age = responseDate
+                        ? -responseDate.diffNow().toMillis()
+                        : null
+
+                    let { maxAge } = parse(ccHeader)
+                    if (age && maxAge) {
+                        const milliseconds = Math.max(0, maxAge * 1000 - age)
+                        setNextFetchTime(DateTime.now().plus({ milliseconds }))
                         nextFetchTimeout.current = setTimeout(() => {
                             fetchMetadata(params).catch(handleFetchError)
-                        }, maxAge * 1000)
+                        }, milliseconds)
                     }
                 }
             }
         },
         [setMediaMetadata],
     )
+
+    const getAvailableSegments = useCallback(() => {
+        return (
+            mediaMetadata?.tracks.flatMap((track, trackNum) =>
+                track.segments
+                    .map((segment, segmentNum) => ({
+                        ...segment,
+                        trackNum,
+                        segmentNum,
+                    }))
+                    .filter(isComplete),
+            ) ?? []
+        )
+    }, [mediaMetadata])
 
     function handleFetchError(e: Error) {
         console.error('Error fetching metadata', e)
@@ -208,21 +212,11 @@ function App() {
         if (!mediaMetadata) {
             return ''
         }
-        const start = DateTime.fromISO(mediaMetadata.releaseStart)
-        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
-        let perc: number
-        if (currentTime >= end) {
-            perc = 100
-        } else if (currentTime <= start) {
-            perc = 0
-        } else {
-            perc =
-                100 *
-                (currentTime.diff(start).toMillis() /
-                    end.diff(start).toMillis())
-        }
+        const totalChunks = mediaMetadata.segmentCount
+        const availableChunks = getAvailableSegments().length
+        const perc = (availableChunks / totalChunks) * 100
         return `${perc.toFixed(2)}% complete`
-    }, [mediaMetadata, currentTime])
+    }, [mediaMetadata, getAvailableSegments])
 
     const timeUntilRelease = useCallback(() => {
         if (!mediaMetadata) {

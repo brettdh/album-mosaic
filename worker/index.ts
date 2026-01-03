@@ -3,6 +3,8 @@ import random from 'random'
 import type { CompleteMetadata, PartialMetadata } from '../lib/data'
 import { DateTime } from 'luxon'
 
+const maxRefreshSeconds = 1800
+
 export default {
     async fetch(request: Request, env: Env): Promise<Response> {
         const url = new URL(request.url)
@@ -17,15 +19,18 @@ export default {
                 metadata,
                 percentReleased,
             )
-            // TODO: calcuate better max-age if the release hasn't begun yet
+
+            const cacheLong = isDev()
+                ? null
+                : `max-age=${maxRefreshSeconds}, must-revalidate`
+            const headers: Record<string, string> = {}
             const directives = refreshInSeconds
                 ? `max-age=${refreshInSeconds}`
-                : `max-age=604800, must-revalidate`
-            return Response.json(filteredMetadata, {
-                headers: {
-                    'Cache-control': `public, ${directives}`,
-                },
-            })
+                : cacheLong
+            if (directives) {
+                headers['Cache-control'] = `public, ${directives}`
+            }
+            return Response.json(filteredMetadata, { headers })
         }
 
         return env.ASSETS.fetch(request)
@@ -74,9 +79,14 @@ function getProgress(request: Request, metadata: CompleteMetadata): Progress {
     const end = DateTime.fromISO(releaseEnd)
     const now = DateTime.now()
     if (now <= start) {
+        let refreshInSeconds = null
+        const secondsUntilStart = Math.floor(start.diff(now).toMillis() / 1000)
+        if (secondsUntilStart < maxRefreshSeconds) {
+            refreshInSeconds = secondsUntilStart
+        }
         return {
             percentReleased: 0,
-            refreshInSeconds: null,
+            refreshInSeconds,
         }
     }
     if (now >= end) {
