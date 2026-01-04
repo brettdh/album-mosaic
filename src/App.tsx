@@ -62,8 +62,8 @@ function App() {
             const playbackEnded = () => setActiveSegment(null)
             return new Promise((resolve) => {
                 for (const handler of [playbackEnded, resolve]) {
-                    audio?.addEventListener('ended', handler)
-                    audio?.addEventListener('pause', handler)
+                    audio.addEventListener('ended', handler)
+                    audio.addEventListener('pause', handler)
                 }
             })
         },
@@ -71,9 +71,7 @@ function App() {
     )
 
     const pause = useCallback(() => {
-        if (audio) {
-            audio.pause()
-        }
+        audio.pause()
     }, [audio])
 
     function handlePlayError(e: Error) {
