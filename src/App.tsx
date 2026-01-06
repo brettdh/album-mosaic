@@ -11,6 +11,7 @@ import { parse } from 'cache-parser'
 import { DateTime, Duration } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
+import Track from './track'
 
 function App() {
     const windowSize = useWindowSize()
@@ -44,28 +45,29 @@ function App() {
     )
 
     const [audio] = useState(new Audio())
-    const [activeSegment, setActiveSegment] = useState<[number, number] | null>(
-        null,
-    )
 
     const play = useCallback(
-        async (
-            audioUrl: string,
-            trackNumber: number,
-            segmentNumber: number,
-        ) => {
-            setActiveSegment([trackNumber, segmentNumber])
-            audio.pause()
-            audio.src = audioUrl
-            await audio.play()
+        async (audioUrl: string, onPlaybackEnded: () => void) => {
+            try {
+                audio.pause()
+                audio.src = audioUrl
+                await audio.play()
 
-            const playbackEnded = () => setActiveSegment(null)
-            return new Promise((resolve) => {
-                for (const handler of [playbackEnded, resolve]) {
-                    audio.addEventListener('ended', handler)
-                    audio.addEventListener('pause', handler)
-                }
-            })
+                return new Promise<void>((resolve) => {
+                    for (const event of ['ended', 'pause', 'abort']) {
+                        for (const handler of [
+                            onPlaybackEnded,
+                            () => resolve(),
+                        ]) {
+                            audio.addEventListener(event, handler, {
+                                once: true,
+                            })
+                        }
+                    }
+                })
+            } catch (e) {
+                handlePlayError(e as Error)
+            }
         },
         [audio],
     )
@@ -79,14 +81,6 @@ function App() {
         toast.error('Error playing audio; please reload the page')
     }
 
-    const segmentIsPlaying = useCallback(
-        (trackNumber: number, segmentNumber: number) =>
-            activeSegment &&
-            activeSegment[0] === trackNumber &&
-            activeSegment[1] === segmentNumber,
-        [activeSegment],
-    )
-
     const [randomChunks, setRandomChunks] = useState<NumberedCompleteSegment[]>(
         [],
     )
@@ -98,11 +92,14 @@ function App() {
         setRandomChunks(chunks)
     }
 
+    const [audioUrlPlaying, setAudioUrlPlaying] = useState<string | null>(null)
+
     useEffect(() => {
         async function playNextRandom() {
             const [chunk, ...remaining] = randomChunks
             if (chunk) {
-                await play(chunk.audioUrl, chunk.trackNum, chunk.segmentNum)
+                setAudioUrlPlaying(chunk.audioUrl)
+                await play(chunk.audioUrl, () => setAudioUrlPlaying(null))
                 setRandomChunks((current) => {
                     if (current.length === 0) {
                         return current
@@ -224,7 +221,7 @@ function App() {
         if (currentTime >= end) {
             return `Completed ${end.toRelative()}`
         }
-        return `Complete  ${end.toRelative({ rounding: 'ceil' })}`
+        return `Complete ${end.toRelative({ rounding: 'ceil' })}`
     }, [mediaMetadata, currentTime])
 
     const timeUntilNextChunk = useCallback(() => {
@@ -258,47 +255,16 @@ function App() {
                 className="cover"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
             >
-                {mediaMetadata.tracks.map(({ segments, height }, i) => (
-                    <div key={`track-${i}`} className="track">
-                        {segments.map(({ imageUrl, audioUrl, width }, j) =>
-                            imageUrl && audioUrl ? (
-                                <a
-                                    key={`segment-${i}-${j}`}
-                                    href="#!"
-                                    onClick={() => {
-                                        if (audioUrl) {
-                                            play(audioUrl, i, j).catch(
-                                                handlePlayError,
-                                            )
-                                        }
-                                    }}
-                                >
-                                    <div
-                                        className={`tile filled${segmentIsPlaying(i, j) ? ' playing' : ''}`}
-                                        style={{
-                                            width: scale(width),
-                                            height: scale(height),
-                                        }}
-                                    >
-                                        <img
-                                            src={imageUrl}
-                                            width={scale(width)}
-                                            height={scale(height)}
-                                        />
-                                    </div>
-                                </a>
-                            ) : (
-                                <div
-                                    key={`segment-${i}-${j}`}
-                                    className="tile empty"
-                                    style={{
-                                        width: scale(width),
-                                        height: scale(height),
-                                    }}
-                                />
-                            ),
-                        )}
-                    </div>
+                {mediaMetadata.tracks.map(({ segments, height }, trackNum) => (
+                    <Track
+                        key={`track-${trackNum}`}
+                        trackNum={trackNum}
+                        segments={segments}
+                        height={height}
+                        scale={scale}
+                        play={play}
+                        audioUrlPlaying={audioUrlPlaying}
+                    />
                 ))}
             </div>
             <div className="countdowns">
