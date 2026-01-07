@@ -163,7 +163,7 @@ function App() {
                         ? -responseDate.diffNow().toMillis()
                         : null
 
-                    let { maxAge } = parse(ccHeader)
+                    const { maxAge } = parse(ccHeader)
                     if (age && maxAge) {
                         const milliseconds = Math.max(0, maxAge * 1000 - age)
                         setNextFetchTime(DateTime.now().plus({ milliseconds }))
@@ -199,8 +199,17 @@ function App() {
     const [nextFetchTime, setNextFetchTime] = useState<DateTime | null>(null)
     const [currentTime, setCurrentTime] = useState(DateTime.now())
     useMount(() => {
+        // XXX: due to strict mode rendering this twice, the cleanup
+        // doesn't clear the timeout because it hasn't been set yet
+        // when the cleanup runs. There's probably a better way to do this,
+        // but for now let's just be aware that it can happen in dev,
+        // leading to weird effects when using the simulation tools.
         fetchMetadata().catch(handleFetchError)
-        setInterval(() => setCurrentTime(DateTime.now()), 1000)
+        const interval = setInterval(() => setCurrentTime(DateTime.now()), 1000)
+        return () => {
+            clearTimeout(nextFetchTimeout.current)
+            clearInterval(interval)
+        }
     })
 
     const percentComplete = useCallback(() => {
