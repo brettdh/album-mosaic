@@ -12,6 +12,7 @@ import { DateTime, Duration } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
 import Track from './track'
+import type { PlaybackEndedCallback } from './functionTypes'
 
 function App() {
     const windowSize = useWindowSize()
@@ -47,7 +48,7 @@ function App() {
     const [audio] = useState(new Audio())
 
     const play = useCallback(
-        async (audioUrl: string, onPlaybackEnded: () => void) => {
+        async (audioUrl: string, onPlaybackEnded: PlaybackEndedCallback) => {
             try {
                 audio.pause()
                 audio.src = audioUrl

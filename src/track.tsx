@@ -1,13 +1,6 @@
 import type { Segment as SegmentType } from '../lib/data'
+import type { FunctionTypes } from './functionTypes'
 import Segment from './segment'
-
-export interface FunctionTypes {
-    scale: (value: number) => number
-    play: (
-        audioUrl: string,
-        onPlaybackEnded: (this: HTMLAudioElement, ev: Event) => unknown,
-    ) => Promise<void>
-}
 
 interface TrackProps extends FunctionTypes {
     trackNum: number

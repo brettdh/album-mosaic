@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { FunctionTypes } from './track'
+import type { FunctionTypes } from './functionTypes'
 import { usePrevious } from '@uidotdev/usehooks'
 import clsx from 'clsx'
 interface SegmentProps extends FunctionTypes {
