@@ -1,3 +1,5 @@
+import { DateTime, Duration } from 'luxon'
+
 export interface Segment {
     audioUrl?: string
     imageUrl?: string
@@ -58,4 +60,66 @@ export function isComplete(
     segment: NumberedSegment,
 ): segment is NumberedCompleteSegment {
     return !!segment.audioUrl && !!segment.imageUrl
+}
+
+export function getAvailableSegments(
+    mediaMetadata: PartialMetadata | null,
+): NumberedCompleteSegment[] {
+    if (!mediaMetadata) {
+        return []
+    }
+    return mediaMetadata.tracks.flatMap((track, trackNum) =>
+        track.segments
+            .map((segment, segmentNum) => ({
+                ...segment,
+                trackNum,
+                segmentNum,
+            }))
+            .filter(isComplete),
+    )
+}
+
+export function percentComplete(mediaMetadata: PartialMetadata | null): string {
+    if (!mediaMetadata) {
+        return ''
+    }
+    const totalChunks = mediaMetadata.segmentCount
+    const availableChunks = getAvailableSegments(mediaMetadata).length
+    const perc = (availableChunks / totalChunks) * 100
+    return `${perc.toFixed(2)}% complete`
+}
+
+export function timeUntilRelease(
+    mediaMetadata: PartialMetadata | null,
+    currentTime: DateTime,
+): string {
+    if (!mediaMetadata) {
+        return ''
+    }
+    const end = DateTime.fromISO(mediaMetadata.releaseEnd)
+    if (currentTime >= end) {
+        return `Completed ${end.toRelative()}`
+    }
+    return `Complete ${end.toRelative({ rounding: 'ceil' })}`
+}
+
+export function timeUntilNextChunk(
+    mediaMetadata: PartialMetadata | null,
+    nextFetchTime: DateTime | null,
+): string {
+    if (!mediaMetadata || !nextFetchTime) {
+        return ''
+    }
+    const end = DateTime.fromISO(mediaMetadata.releaseEnd)
+    if (nextFetchTime >= end) {
+        return ''
+    }
+    const duration = nextFetchTime.diffNow()
+    let countdown: string
+    if (duration > Duration.fromObject({ hours: 1 })) {
+        countdown = duration.toFormat('hh:mm:ss')
+    } else {
+        countdown = duration.toFormat('mm:ss')
+    }
+    return `Next chunk in ${countdown}`
 }

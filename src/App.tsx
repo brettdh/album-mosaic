@@ -1,6 +1,9 @@
 import './App.css'
 import {
-    isComplete,
+    getAvailableSegments,
+    percentComplete,
+    timeUntilNextChunk,
+    timeUntilRelease,
     type NumberedCompleteSegment,
     type PartialMetadata,
 } from '../lib/data'
@@ -87,7 +90,7 @@ function App() {
     )
 
     function playRandom(numChunks: number) {
-        const availableSegments = getAvailableSegments()
+        const availableSegments = getAvailableSegments(mediaMetadata)
 
         const chunks = random.sample(availableSegments, numChunks)
         setRandomChunks(chunks)
@@ -178,20 +181,6 @@ function App() {
         [setMediaMetadata],
     )
 
-    const getAvailableSegments = useCallback(() => {
-        return (
-            mediaMetadata?.tracks.flatMap((track, trackNum) =>
-                track.segments
-                    .map((segment, segmentNum) => ({
-                        ...segment,
-                        trackNum,
-                        segmentNum,
-                    }))
-                    .filter(isComplete),
-            ) ?? []
-        )
-    }, [mediaMetadata])
-
     function handleFetchError(e: Error) {
         console.error('Error fetching metadata', e)
         toast.error('Error loading data; please reload the page')
@@ -212,45 +201,6 @@ function App() {
             clearInterval(interval)
         }
     })
-
-    const percentComplete = useCallback(() => {
-        if (!mediaMetadata) {
-            return ''
-        }
-        const totalChunks = mediaMetadata.segmentCount
-        const availableChunks = getAvailableSegments().length
-        const perc = (availableChunks / totalChunks) * 100
-        return `${perc.toFixed(2)}% complete`
-    }, [mediaMetadata, getAvailableSegments])
-
-    const timeUntilRelease = useCallback(() => {
-        if (!mediaMetadata) {
-            return ''
-        }
-        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
-        if (currentTime >= end) {
-            return `Completed ${end.toRelative()}`
-        }
-        return `Complete ${end.toRelative({ rounding: 'ceil' })}`
-    }, [mediaMetadata, currentTime])
-
-    const timeUntilNextChunk = useCallback(() => {
-        if (!mediaMetadata || !nextFetchTime) {
-            return ''
-        }
-        const end = DateTime.fromISO(mediaMetadata.releaseEnd)
-        if (nextFetchTime >= end) {
-            return ''
-        }
-        const duration = nextFetchTime.diffNow()
-        let countdown: string
-        if (duration > Duration.fromObject({ hours: 1 })) {
-            countdown = duration.toFormat('hh:mm:ss')
-        } else {
-            countdown = duration.toFormat('mm:ss')
-        }
-        return `Next chunk in ${countdown}`
-    }, [mediaMetadata, nextFetchTime])
 
     const [releaseDurationSeconds, setReleaseDurationSeconds] = useState(30)
     const [progress, setProgress] = useState(100)
@@ -277,93 +227,100 @@ function App() {
                     />
                 ))}
             </div>
-            <div className="countdowns">
-                <h3>Release Progress</h3>
-                <span>{percentComplete()}</span>
-                <span>{timeUntilRelease()}</span>
-                <span>{timeUntilNextChunk()}</span>
-            </div>
-            <div className="actions">
-                {randomChunks.length > 0 ? (
-                    <button
-                        value="stopRandom"
-                        onClick={() => {
-                            setRandomChunks([])
-                            pause()
-                        }}
-                    >
-                        Stop Playback
-                    </button>
-                ) : (
-                    <button value="random" onClick={() => playRandom(5)}>
-                        Play 5 random chunks
-                    </button>
+            <div className="inner-container">
+                <div className="countdowns">
+                    <h3>Release Progress</h3>
+                    <span>{percentComplete(mediaMetadata)}</span>
+                    <span>{timeUntilRelease(mediaMetadata, currentTime)}</span>
+                    <span>
+                        {timeUntilNextChunk(mediaMetadata, nextFetchTime)}
+                    </span>
+                </div>
+                <div className="actions">
+                    {randomChunks.length > 0 ? (
+                        <button
+                            value="stopRandom"
+                            onClick={() => {
+                                setRandomChunks([])
+                                pause()
+                            }}
+                        >
+                            Stop Playback
+                        </button>
+                    ) : (
+                        <button value="random" onClick={() => playRandom(5)}>
+                            Play 5 random chunks
+                        </button>
+                    )}
+                </div>
+                {import.meta.env.DEV && (
+                    <div className="controls">
+                        <div>
+                            {`Progress: ${progress.toFixed(2)}%`}
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step="any"
+                                value={progress}
+                                onChange={(event) =>
+                                    setProgress(parseFloat(event.target.value))
+                                }
+                            />
+                        </div>
+                        <button
+                            value="Override"
+                            onClick={() => {
+                                fetchMetadata({ progress }).catch(
+                                    handleFetchError,
+                                )
+                            }}
+                        >
+                            Override
+                        </button>
+                        <button
+                            value="Reset"
+                            onClick={() => {
+                                fetchMetadata().catch(handleFetchError)
+                            }}
+                        >
+                            Reset
+                        </button>
+                        <div id="release-simulator">
+                            <label htmlFor="release-duration">
+                                Simulated release duration
+                            </label>
+                            <input
+                                id="release-duration"
+                                value={releaseDurationSeconds}
+                                onChange={(e) =>
+                                    setReleaseDurationSeconds(
+                                        parseInt(e.target.value, 10),
+                                    )
+                                }
+                            />
+                        </div>
+                        {/* TODO: Add some customization here; e.g. start date, end date */}
+                        <button
+                            value="Simulate"
+                            onClick={() => {
+                                const releaseStart = DateTime.now().toISO()
+                                const releaseEnd = DateTime.now()
+                                    .plus({
+                                        seconds: releaseDurationSeconds,
+                                    })
+                                    .toISO()
+                                fetchMetadata({
+                                    releaseStart,
+                                    releaseEnd,
+                                }).catch(handleFetchError)
+                            }}
+                        >
+                            Simulate
+                        </button>
+                    </div>
                 )}
             </div>
-            {import.meta.env.DEV && (
-                <div className="controls">
-                    <div>
-                        {`Progress: ${progress.toFixed(2)}%`}
-                        <input
-                            type="range"
-                            min={0}
-                            max={100}
-                            step="any"
-                            value={progress}
-                            onChange={(event) =>
-                                setProgress(parseFloat(event.target.value))
-                            }
-                        />
-                    </div>
-                    <button
-                        value="Override"
-                        onClick={() => {
-                            fetchMetadata({ progress }).catch(handleFetchError)
-                        }}
-                    >
-                        Override
-                    </button>
-                    <button
-                        value="Reset"
-                        onClick={() => {
-                            fetchMetadata().catch(handleFetchError)
-                        }}
-                    >
-                        Reset
-                    </button>
-                    <div id="release-simulator">
-                        <label htmlFor="release-duration">
-                            Simulated release duration
-                        </label>
-                        <input
-                            id="release-duration"
-                            value={releaseDurationSeconds}
-                            onChange={(e) =>
-                                setReleaseDurationSeconds(
-                                    parseInt(e.target.value, 10),
-                                )
-                            }
-                        />
-                    </div>
-                    {/* TODO: Add some customization here; e.g. start date, end date */}
-                    <button
-                        value="Simulate"
-                        onClick={() => {
-                            const releaseStart = DateTime.now().toISO()
-                            const releaseEnd = DateTime.now()
-                                .plus({
-                                    seconds: releaseDurationSeconds,
-                                })
-                                .toISO()
-                            fetchMetadata({ releaseStart, releaseEnd }).catch(
-                                handleFetchError,
-                            )
-                        }}
-                    >
-                        Simulate
-                    </button>
-                </div>
-            )}
         </div>
     )
 }
