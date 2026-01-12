@@ -11,11 +11,10 @@ import { useMount } from '../lib/hooks'
 import { useEffect, useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
-import { DateTime, Duration } from 'luxon'
+import { DateTime } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
 import Track from './track'
-import type { PlaybackEndedCallback } from './functionTypes'
 
 function App() {
     const windowSize = useWindowSize()
@@ -48,37 +47,25 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    const [audio] = useState(new Audio())
+    const audio = useRef(new Audio())
 
-    const play = useCallback(
-        async (audioUrl: string, onPlaybackEnded: PlaybackEndedCallback) => {
-            try {
-                audio.pause()
-                audio.src = audioUrl
-                await audio.play()
+    const play = useCallback(async (audioUrl: string) => {
+        try {
+            audio.current.pause()
+            audio.current.src = audioUrl
+            await audio.current.play()
 
-                return new Promise<void>((resolve) => {
-                    for (const event of ['ended', 'pause', 'abort']) {
-                        for (const handler of [
-                            onPlaybackEnded,
-                            () => resolve(),
-                        ]) {
-                            audio.addEventListener(event, handler, {
-                                once: true,
-                            })
-                        }
-                    }
-                })
-            } catch (e) {
-                handlePlayError(e as Error)
-            }
-        },
-        [audio],
-    )
-
-    const pause = useCallback(() => {
-        audio.pause()
-    }, [audio])
+            return new Promise<void>((resolve) => {
+                for (const event of ['ended', 'pause', 'abort']) {
+                    audio.current.addEventListener(event, () => resolve(), {
+                        once: true,
+                    })
+                }
+            })
+        } catch (e) {
+            handlePlayError(e as Error)
+        }
+    }, [])
 
     function handlePlayError(e: Error) {
         console.error('Error playing audio:', e)
@@ -103,7 +90,10 @@ function App() {
             const [chunk, ...remaining] = randomChunks
             if (chunk) {
                 setAudioUrlPlaying(chunk.audioUrl)
-                await play(chunk.audioUrl, () => setAudioUrlPlaying(null))
+                await play(chunk.audioUrl)
+                if (remaining.length === 0) {
+                    setAudioUrlPlaying(null)
+                }
                 setRandomChunks((current) => {
                     if (current.length === 0) {
                         return current
@@ -113,7 +103,7 @@ function App() {
             }
         }
         playNextRandom().catch(handlePlayError)
-    }, [play, randomChunks, setRandomChunks])
+    }, [play, randomChunks])
 
     interface FetchParams {
         progress?: number
@@ -242,7 +232,8 @@ function App() {
                             value="stopRandom"
                             onClick={() => {
                                 setRandomChunks([])
-                                pause()
+                                setAudioUrlPlaying(null)
+                                audio.current.pause()
                             }}
                         >
                             Stop Playback

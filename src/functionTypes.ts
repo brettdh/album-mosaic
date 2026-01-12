@@ -5,8 +5,5 @@ export type PlaybackEndedCallback = (
 
 export interface FunctionTypes {
     scale: (value: number) => number
-    play: (
-        audioUrl: string,
-        onPlaybackEnded: PlaybackEndedCallback,
-    ) => Promise<void>
+    play: (audioUrl: string) => Promise<void>
 }

@@ -58,17 +58,21 @@ export default function Segment({
         setShowedHighlight,
     ])
 
-    function playAudio() {
+    async function playAudio() {
         if (audioUrl) {
             setIsPlayingLocal(true)
-            void play(audioUrl, () => {
-                setIsPlayingLocal(false)
-            })
+            await play(audioUrl)
+            setIsPlayingLocal(false)
         }
     }
 
     return imageUrl && audioUrl ? (
-        <a href="#!" onClick={() => playAudio()}>
+        <a
+            href="#!"
+            onClick={() => {
+                void playAudio()
+            }}
+        >
             <div
                 className={clsx(
                     'tile filled',
