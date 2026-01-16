@@ -6,7 +6,6 @@ interface TrackProps extends FunctionTypes {
     trackNum: number
     segments: SegmentType[]
     height: number
-    audioUrlPlaying: string | null
 }
 
 export default function Track({
@@ -14,8 +13,6 @@ export default function Track({
     segments,
     height,
     scale,
-    play,
-    audioUrlPlaying,
 }: TrackProps) {
     return (
         <div className="track">
@@ -29,8 +26,6 @@ export default function Track({
                     trackNum={trackNum}
                     segmentNum={segmentNum}
                     scale={scale}
-                    play={play}
-                    audioUrlPlaying={audioUrlPlaying}
                 />
             ))}
         </div>

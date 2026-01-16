@@ -4,6 +4,7 @@ import {
     percentComplete,
     timeUntilNextChunk,
     timeUntilRelease,
+    type CompleteSegment,
     type NumberedCompleteSegment,
     type PartialMetadata,
 } from '../lib/data'
@@ -15,6 +16,7 @@ import { DateTime } from 'luxon'
 import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
 import Track from './track'
+import useAudioPlayer from './useAudioPlayer'
 
 function App() {
     const windowSize = useWindowSize()
@@ -47,63 +49,14 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    const audio = useRef(new Audio())
-
-    const play = useCallback(async (audioUrl: string) => {
-        try {
-            audio.current.pause()
-            audio.current.src = audioUrl
-            await audio.current.play()
-
-            return new Promise<void>((resolve) => {
-                for (const event of ['ended', 'pause', 'abort']) {
-                    audio.current.addEventListener(event, () => resolve(), {
-                        once: true,
-                    })
-                }
-            })
-        } catch (e) {
-            handlePlayError(e as Error)
-        }
-    }, [])
-
-    function handlePlayError(e: Error) {
-        console.error('Error playing audio:', e)
-        toast.error('Error playing audio; please reload the page')
-    }
-
-    const [randomChunks, setRandomChunks] = useState<NumberedCompleteSegment[]>(
-        [],
-    )
+    const { player, chunkQueue } = useAudioPlayer()
 
     function playRandom(numChunks: number) {
         const availableSegments = getAvailableSegments(mediaMetadata)
 
         const chunks = random.sample(availableSegments, numChunks)
-        setRandomChunks(chunks)
+        player.enqueue(chunks)
     }
-
-    const [audioUrlPlaying, setAudioUrlPlaying] = useState<string | null>(null)
-
-    useEffect(() => {
-        async function playNextRandom() {
-            const [chunk, ...remaining] = randomChunks
-            if (chunk) {
-                setAudioUrlPlaying(chunk.audioUrl)
-                await play(chunk.audioUrl)
-                if (remaining.length === 0) {
-                    setAudioUrlPlaying(null)
-                }
-                setRandomChunks((current) => {
-                    if (current.length === 0) {
-                        return current
-                    }
-                    return remaining
-                })
-            }
-        }
-        playNextRandom().catch(handlePlayError)
-    }, [play, randomChunks])
 
     interface FetchParams {
         progress?: number
@@ -212,8 +165,6 @@ function App() {
                         segments={segments}
                         height={height}
                         scale={scale}
-                        play={play}
-                        audioUrlPlaying={audioUrlPlaying}
                     />
                 ))}
             </div>
@@ -227,13 +178,11 @@ function App() {
                     </span>
                 </div>
                 <div className="actions">
-                    {randomChunks.length > 0 ? (
+                    {chunkQueue.length > 0 ? (
                         <button
                             value="stopRandom"
                             onClick={() => {
-                                setRandomChunks([])
-                                setAudioUrlPlaying(null)
-                                audio.current.pause()
+                                player.stop()
                             }}
                         >
                             Stop Playback

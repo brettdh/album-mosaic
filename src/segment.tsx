@@ -1,7 +1,13 @@
+import './segment.css'
+
 import { useCallback, useEffect, useState } from 'react'
 import type { FunctionTypes } from './functionTypes'
 import { usePrevious } from '@uidotdev/usehooks'
 import clsx from 'clsx'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons'
+import useAudioPlayer from './useAudioPlayer'
+
 interface SegmentProps extends FunctionTypes {
     trackNum: number
     segmentNum: number
@@ -9,7 +15,6 @@ interface SegmentProps extends FunctionTypes {
     audioUrl?: string
     height: number
     width: number
-    audioUrlPlaying: string | null
 }
 
 export default function Segment({
@@ -20,12 +25,9 @@ export default function Segment({
     height,
     width,
     scale,
-    play,
-    audioUrlPlaying,
 }: SegmentProps) {
-    const [isPlayingLocal, setIsPlayingLocal] = useState(false)
-    const isPlaying =
-        isPlayingLocal || (audioUrl && audioUrl === audioUrlPlaying)
+    const { player, audioUrlPlaying } = useAudioPlayer()
+    const isPlaying = audioUrl && audioUrl === audioUrlPlaying
 
     const prevAudioUrl = usePrevious(audioUrl)
     const isNew = useCallback(
@@ -58,11 +60,10 @@ export default function Segment({
         setShowedHighlight,
     ])
 
-    async function playAudio() {
-        if (audioUrl) {
-            setIsPlayingLocal(true)
-            await play(audioUrl)
-            setIsPlayingLocal(false)
+    function playAudio() {
+        if (audioUrl && imageUrl) {
+            const chunk = { audioUrl, imageUrl, width }
+            void player.enqueue([chunk])
         }
     }
 
@@ -70,7 +71,11 @@ export default function Segment({
         <a
             href="#!"
             onClick={() => {
-                void playAudio()
+                if (isPlaying) {
+                    player.stop()
+                } else {
+                    playAudio()
+                }
             }}
         >
             <div
@@ -88,6 +93,10 @@ export default function Segment({
                     src={imageUrl}
                     width={scale(width)}
                     height={scale(height)}
+                />
+                <FontAwesomeIcon
+                    className="playback-icon"
+                    icon={isPlaying ? faPause : faPlay}
                 />
             </div>
         </a>
