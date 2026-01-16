@@ -1,6 +1,76 @@
+.tile {
+    padding: 0;
+    margin: 0;
+    transition: transform 0.3s ease-in-out;
+}
+
+.tile.empty {
+    /* background-color: #222; */
+}
+
+.tile.filled.playing {
+    border: 10px;
+    border-color: #fff;
+    transform: scale(1.2, 1.2);
+
+    .playback-icon {
+        opacity: 1;
+    }
+}
+
+.tile.filled.new {
+    border: 10px;
+    border-color: #fff;
+    transform: scale(1.5, 1.5);
+    transition: transform 0.8s ease-in-out;
+}
+
+/* Pre-render the bigger shadow, but hide it */
+.tile.filled::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    box-shadow: 0 0 15px 5px rgba(255, 255, 255, 0.8);
+    transform: scale(1.2, 1.2);
+    transition: opacity 0.3s ease-in-out;
+}
+
+.tile.filled.new::after {
+    transform: scale(1.5, 1.5);
+    transition: opacity 0.8s ease-in-out;
+}
+
+/* Transition to showing the bigger shadow on hover */
+.tile.filled.playing::after,
+.tile.filled.new::after {
+    opacity: 1;
+}
+
+@media (hover: hover) {
+    .tile.filled:hover {
+        border: 10px;
+        border-color: #fff;
+        transform: scale(1.2, 1.2);
+
+        .playback-icon {
+            opacity: 1;
+        }
+    }
+    .tile.filled:hover::after {
+        opacity: 1;
+    }
+}
+
 .playback-icon {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s ease-in-out;
 }

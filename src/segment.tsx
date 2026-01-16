@@ -95,7 +95,7 @@ export default function Segment({
                     height={scale(height)}
                 />
                 <FontAwesomeIcon
-                    className="playback-icon"
+                    className={clsx('playback-icon', { playing: isPlaying })}
                     icon={isPlaying ? faPause : faPlay}
                 />
             </div>
