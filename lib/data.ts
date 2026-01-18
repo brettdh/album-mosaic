@@ -22,6 +22,14 @@ export interface CompleteTrack {
     height: number
 }
 
+export interface Link {
+    url: string
+
+    // if present, don't show the link until after this date
+    // if absent, use the release end date instead
+    date?: string
+}
+
 export interface CompleteMetadata {
     tracks: CompleteTrack[]
 
@@ -35,6 +43,9 @@ export interface CompleteMetadata {
     // release duration; determines the rate at which new segments are released
     releaseStart: string // ISO 8601
     releaseEnd: string // ISO 8601
+
+    // links shown once release is complete
+    links: Record<string, Link>
 }
 
 export type PartialMetadata = Omit<CompleteMetadata, 'tracks'> & {
@@ -115,6 +126,10 @@ export function timeUntilNextChunk(
         return ''
     }
     const duration = nextFetchTime.diffNow()
+    if (duration < Duration.fromMillis(0)) {
+        return ''
+    }
+
     let countdown: string
     if (duration > Duration.fromObject({ hours: 1 })) {
         countdown = duration.toFormat('hh:mm:ss')

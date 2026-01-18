@@ -4,12 +4,10 @@ import {
     percentComplete,
     timeUntilNextChunk,
     timeUntilRelease,
-    type CompleteSegment,
-    type NumberedCompleteSegment,
     type PartialMetadata,
 } from '../lib/data'
 import { useMount } from '../lib/hooks'
-import { useEffect, useCallback, useRef, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
 import { DateTime } from 'luxon'
@@ -17,6 +15,7 @@ import toast, { Toaster } from 'react-hot-toast'
 import random from 'random'
 import Track from './track'
 import useAudioPlayer from './useAudioPlayer'
+import Links from './Links'
 
 function App() {
     const windowSize = useWindowSize()
@@ -193,6 +192,10 @@ function App() {
                         </button>
                     )}
                 </div>
+                <Links
+                    links={mediaMetadata.links}
+                    releaseEnd={mediaMetadata.releaseEnd}
+                />
                 {import.meta.env.DEV && (
                     <div className="controls">
                         <div>
