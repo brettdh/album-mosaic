@@ -3,9 +3,13 @@
     "references": [
         { "path": "./tsconfig.app.json" },
         { "path": "./tsconfig.node.json" },
-        { "path": "./tsconfig.worker.json" }
+        { "path": "./tsconfig.worker.json" },
     ],
     "compilerOptions": {
-        "types": ["./worker-configuration.d.ts"]
-    }
+        "types": ["./worker-configuration.d.ts"],
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"],
+        },
+    },
 }

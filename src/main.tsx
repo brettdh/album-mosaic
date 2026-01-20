@@ -1,10 +1,13 @@
 import { StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
+import { Toaster } from 'react-hot-toast'
+
 import './index.css'
 import App from './App.tsx'
 import AudioPlayerContext from './AudioPlayerContext.ts'
 import AudioPlayer from './audioPlayer'
 import type { CompleteSegment } from '../lib/data.ts'
+import { ThemeProvider } from '@/components/theme-provider'
 
 const player = new AudioPlayer()
 
@@ -25,9 +28,14 @@ const Main = () => {
 
     return (
         <StrictMode>
-            <AudioPlayerContext value={{ player, audioUrlPlaying, chunkQueue }}>
-                <App />
-            </AudioPlayerContext>
+            <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+                <AudioPlayerContext
+                    value={{ player, audioUrlPlaying, chunkQueue }}
+                >
+                    <Toaster position="top-right" />
+                    <App />
+                </AudioPlayerContext>
+            </ThemeProvider>
         </StrictMode>
     )
 }

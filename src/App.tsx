@@ -1,4 +1,5 @@
 import './App.css'
+
 import {
     getAvailableSegments,
     percentComplete,
@@ -11,11 +12,14 @@ import { useCallback, useRef, useState } from 'react'
 import { useWindowSize } from '@uidotdev/usehooks'
 import { parse } from 'cache-parser'
 import { DateTime } from 'luxon'
-import toast, { Toaster } from 'react-hot-toast'
+import toast from 'react-hot-toast'
 import random from 'random'
 import Track from './track'
 import useAudioPlayer from './useAudioPlayer'
 import Links from './Links'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 function App() {
     const windowSize = useWindowSize()
@@ -152,7 +156,6 @@ function App() {
     }
     return (
         <div className="container">
-            <Toaster position="top-right" />
             <div
                 className="cover"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
@@ -178,18 +181,23 @@ function App() {
                 </div>
                 <div className="actions">
                     {chunkQueue.length > 0 ? (
-                        <button
+                        <Button
+                            variant="outline"
                             value="stopRandom"
                             onClick={() => {
                                 player.stop()
                             }}
                         >
                             Stop Playback
-                        </button>
+                        </Button>
                     ) : (
-                        <button value="random" onClick={() => playRandom(5)}>
+                        <Button
+                            variant="outline"
+                            value="random"
+                            onClick={() => playRandom(5)}
+                        >
                             Play 5 random chunks
-                        </button>
+                        </Button>
                     )}
                 </div>
                 <Links
@@ -211,7 +219,8 @@ function App() {
                                 }
                             />
                         </div>
-                        <button
+                        <Button
+                            variant="outline"
                             value="Override"
                             onClick={() => {
                                 fetchMetadata({ progress }).catch(
@@ -220,20 +229,21 @@ function App() {
                             }}
                         >
                             Override
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                            variant="outline"
                             value="Reset"
                             onClick={() => {
                                 fetchMetadata().catch(handleFetchError)
                             }}
                         >
                             Reset
-                        </button>
+                        </Button>
                         <div id="release-simulator">
                             <label htmlFor="release-duration">
                                 Simulated release duration
                             </label>
-                            <input
+                            <Input
                                 id="release-duration"
                                 value={releaseDurationSeconds}
                                 onChange={(e) =>
@@ -244,7 +254,8 @@ function App() {
                             />
                         </div>
                         {/* TODO: Add some customization here; e.g. start date, end date */}
-                        <button
+                        <Button
+                            variant="outline"
                             value="Simulate"
                             onClick={() => {
                                 const releaseStart = DateTime.now().toISO()
@@ -260,7 +271,7 @@ function App() {
                             }}
                         >
                             Simulate
-                        </button>
+                        </Button>
                     </div>
                 )}
             </div>

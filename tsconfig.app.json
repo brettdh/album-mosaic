@@ -22,7 +22,13 @@
         "noUnusedParameters": true,
         "erasableSyntaxOnly": true,
         "noFallthroughCasesInSwitch": true,
-        "noUncheckedSideEffectImports": true
+        "noUncheckedSideEffectImports": true,
+
+        /* shadcn/ui, tailwind */
+        "baseUrl": ".",
+        "paths": {
+            "@/*": ["./src/*"],
+        },
     },
-    "include": ["src", "lib"]
+    "include": ["src", "lib"],
 }

@@ -25,7 +25,7 @@ const Links = ({ links, releaseEnd }: LinksProps) => {
                                     'LLL dd, yyyy',
                                 )
                             return (
-                                <li>
+                                <li key={label}>
                                     {isPast(linkDate) ? (
                                         <a href={url}>{label}</a>
                                     ) : (
