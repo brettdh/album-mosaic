@@ -20,6 +20,7 @@ import Links from './Links'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Playback } from './playback'
 
 function App() {
     const windowSize = useWindowSize()
@@ -52,7 +53,7 @@ function App() {
         [windowSize, mediaMetadata],
     )
 
-    const { player, chunkQueue } = useAudioPlayer()
+    const { player, chunkQueue, waveform, elapsedTime } = useAudioPlayer()
 
     function playRandom(numChunks: number) {
         const availableSegments = getAvailableSegments(mediaMetadata)
@@ -160,15 +161,18 @@ function App() {
                 className="cover"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
             >
-                {mediaMetadata.tracks.map(({ segments, height }, trackNum) => (
-                    <Track
-                        key={`track-${trackNum}`}
-                        trackNum={trackNum}
-                        segments={segments}
-                        height={height}
-                        scale={scale}
-                    />
-                ))}
+                {mediaMetadata.tracks.map(
+                    ({ segments, height, name }, trackNum) => (
+                        <Track
+                            key={`track-${trackNum}`}
+                            trackName={name}
+                            trackNum={trackNum}
+                            segments={segments}
+                            height={height}
+                            scale={scale}
+                        />
+                    ),
+                )}
             </div>
             <div className="inner-container">
                 <div className="countdowns">
@@ -200,6 +204,11 @@ function App() {
                         </Button>
                     )}
                 </div>
+                <Playback
+                    waveform={waveform}
+                    elapsedTime={elapsedTime}
+                    segment={chunkQueue?.[0]}
+                />
                 <Links
                     links={mediaMetadata.links}
                     releaseEnd={mediaMetadata.releaseEnd}

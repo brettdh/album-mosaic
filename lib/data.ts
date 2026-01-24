@@ -4,22 +4,25 @@ export interface Segment {
     audioUrl?: string
     imageUrl?: string
     width: number
+
+    // position in the track as seconds
+    start: number
+    end: number
 }
 
 export interface Track {
     segments: Segment[]
     height: number
+    name?: string
 }
 
-export interface CompleteSegment {
+export type CompleteSegment = Omit<Segment, 'audioUrl' | 'imageUrl'> & {
     audioUrl: string
     imageUrl: string
-    width: number
 }
 
-export interface CompleteTrack {
+export type CompleteTrack = Omit<Track, 'segments'> & {
     segments: CompleteSegment[]
-    height: number
 }
 
 export interface Link {
@@ -30,7 +33,7 @@ export interface Link {
     date?: string
 }
 
-export interface CompleteMetadata {
+export interface CompleteMetadata extends ManualMetadata {
     tracks: CompleteTrack[]
 
     // saved here to avoid calculating repeatedly
@@ -39,7 +42,13 @@ export interface CompleteMetadata {
     // image size in pixels
     totalWidth: number
     totalHeight: number
+}
 
+export type PartialMetadata = Omit<CompleteMetadata, 'tracks'> & {
+    tracks: Track[]
+}
+
+export interface ManualMetadata {
     // release duration; determines the rate at which new segments are released
     releaseStart: string // ISO 8601
     releaseEnd: string // ISO 8601
@@ -48,21 +57,16 @@ export interface CompleteMetadata {
     links: Record<string, Link>
 }
 
-export type PartialMetadata = Omit<CompleteMetadata, 'tracks'> & {
-    tracks: Track[]
-}
-
-export type GeneratedMetadata = Omit<
-    CompleteMetadata,
-    'releaseStart' | 'releaseEnd'
->
+export type GeneratedMetadata = Omit<CompleteMetadata, keyof ManualMetadata>
 
 export interface NumberedSegment extends Segment {
+    trackName?: string
     trackNum: number
     segmentNum: number
 }
 
 export interface NumberedCompleteSegment extends CompleteSegment {
+    trackName?: string
     trackNum: number
     segmentNum: number
 }
@@ -79,15 +83,16 @@ export function getAvailableSegments(
     if (!mediaMetadata) {
         return []
     }
-    return mediaMetadata.tracks.flatMap((track, trackNum) =>
-        track.segments
-            .map((segment, segmentNum) => ({
+    const segments: NumberedSegment[] = mediaMetadata.tracks.flatMap(
+        (track, trackNum) =>
+            track.segments.map((segment, segmentNum) => ({
                 ...segment,
+                trackName: track.name,
                 trackNum,
                 segmentNum,
-            }))
-            .filter(isComplete),
+            })),
     )
+    return segments.filter(isComplete)
 }
 
 export function percentComplete(mediaMetadata: PartialMetadata | null): string {

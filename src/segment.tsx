@@ -9,21 +9,27 @@ import { faPlay, faPause } from '@fortawesome/free-solid-svg-icons'
 import useAudioPlayer from './useAudioPlayer'
 
 interface SegmentProps extends FunctionTypes {
+    trackName?: string
     trackNum: number
     segmentNum: number
     imageUrl?: string
     audioUrl?: string
     height: number
     width: number
+    start: number
+    end: number
 }
 
 export default function Segment({
+    trackName,
     trackNum,
     segmentNum,
     imageUrl,
     audioUrl,
     height,
     width,
+    start,
+    end,
     scale,
 }: SegmentProps) {
     const { player, audioUrlPlaying } = useAudioPlayer()
@@ -62,7 +68,16 @@ export default function Segment({
 
     function playAudio() {
         if (audioUrl && imageUrl) {
-            const chunk = { audioUrl, imageUrl, width }
+            const chunk = {
+                audioUrl,
+                imageUrl,
+                width,
+                start,
+                end,
+                trackName,
+                trackNum,
+                segmentNum,
+            }
             void player.enqueue([chunk])
         }
     }

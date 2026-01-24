@@ -33,19 +33,22 @@
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "dotenv": "^17.2.3",
+        "es6-promisify": "^7.0.0",
         "lucide-react": "^0.562.0",
         "random": "^5.4.1",
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-hot-toast": "^2.6.0",
         "tailwind-merge": "^3.4.0",
-        "tailwindcss": "^4.1.18"
+        "tailwindcss": "^4.1.18",
+        "waveform-data": "^4.5.2"
     },
     "devDependencies": {
         "@cloudflare/vite-plugin": "^1.17.1",
         "@commander-js/extra-typings": "^14.0.0",
         "@eslint/js": "^9.36.0",
         "@types/cli-progress": "^3.11.6",
+        "@types/es6-promisify": "^6.0.4",
         "@types/fs-extra": "^11.0.4",
         "@types/luxon": "^3.7.1",
         "@types/node": "^24.10.9",

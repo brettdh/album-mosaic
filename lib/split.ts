@@ -10,7 +10,7 @@ import cliProgress from 'cli-progress'
 import { rimraf } from 'rimraf'
 
 import { durationToSeconds, getDuration } from './audio.ts'
-import type { GeneratedMetadata } from './data.ts'
+import type { CompleteMetadata, ManualMetadata } from './data.ts'
 
 const exec = util.promisify(execOrig)
 const glob = util.promisify(fs.glob)
@@ -82,10 +82,9 @@ command.parse()
 const options = command.opts()
 
 const outDir = options.outDir
-if (await fs.pathExists(outDir)) {
-    await rimraf(outDir)
+if (!(await fs.pathExists(outDir))) {
+    await fs.mkdir(outDir)
 }
-await fs.mkdir(outDir)
 
 const imageExt = path.extname(options.image)
 const imageData = await fs.readFile(options.image)
@@ -152,8 +151,14 @@ function makeUrl(filePath: string): string {
 }
 
 const imagesDir = path.join(outDir, 'images')
+if (await fs.pathExists(imagesDir)) {
+    await rimraf(imagesDir)
+}
 await fs.mkdir(imagesDir)
 const audioDir = path.join(outDir, 'audio')
+if (await fs.pathExists(audioDir)) {
+    await rimraf(audioDir)
+}
 await fs.mkdir(audioDir)
 
 const trackMetadata = await Promise.all(
@@ -270,6 +275,15 @@ const trackMetadata = await Promise.all(
                 return newFilename
             }),
         )
+        const durations = await Promise.all(
+            renamedAudioFiles.map(async (filename) =>
+                durationToSeconds(await getDuration(filename)),
+            ),
+        )
+        const starts = [0]
+        for (let i = 1; i < durations.length; i++) {
+            starts.push(starts[i - 1] + durations[i])
+        }
         if (imageStripChunks.length !== renamedAudioFiles.length) {
             throw new Error(
                 `image/audio list length mismatch: ` +
@@ -277,13 +291,17 @@ const trackMetadata = await Promise.all(
                     `and ${imageStripChunks.length} image chunks`,
             )
         }
+        const name = /^\d+ - (?<name>.+)\.[^.]+$/.exec(filename)?.groups?.name
         return {
             segments: imageStripChunks.map(({ image, width }, i) => ({
                 imageUrl: makeUrl(image),
                 audioUrl: makeUrl(renamedAudioFiles[i]),
                 width,
+                start: starts[i],
+                end: starts[i] + durations[i],
             })),
             height,
+            name,
         }
     }),
 )
@@ -296,10 +314,15 @@ const segmentCount = trackMetadata
 
 const buildDir = options.buildDir
 const metadataPath = path.join(buildDir, 'metadata.json')
-const metadata: GeneratedMetadata = {
+const manualMetadataPath = path.join(buildDir, 'metadata.manual.json')
+const manualMetadata = JSON.parse(
+    (await fs.readFile(manualMetadataPath)).toString(),
+) as ManualMetadata
+const metadata: CompleteMetadata = {
     tracks: trackMetadata,
     totalWidth: imageMetadata.width,
     totalHeight: imageMetadata.height,
     segmentCount,
+    ...manualMetadata,
 }
 await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2))
