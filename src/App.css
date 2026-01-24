@@ -47,11 +47,6 @@ body {
     align-items: flex-start;
 }
 
-.controls {
-    display: flex;
-    flex-direction: column;
-}
-
 .cover {
     display: flex;
     flex-direction: column;

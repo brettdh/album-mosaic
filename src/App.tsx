@@ -214,7 +214,7 @@ function App() {
                     releaseEnd={mediaMetadata.releaseEnd}
                 />
                 {import.meta.env.DEV && (
-                    <div className="controls">
+                    <div className="flex flex-col mt-auto">
                         <div>
                             {`Progress: ${progress.toFixed(2)}%`}
                             <input
