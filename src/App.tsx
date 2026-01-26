@@ -1,5 +1,3 @@
-import './App.css'
-
 import {
     getAvailableSegments,
     percentComplete,
@@ -156,9 +154,9 @@ function App() {
         return <div className="loading">Loading</div>
     }
     return (
-        <div className="container">
+        <div className="w-full h-full flex flex-col lg:flex-row lg:gap-x-12">
             <div
-                className="cover"
+                className="flex flex-col"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
             >
                 {mediaMetadata.tracks.map(
@@ -174,8 +172,8 @@ function App() {
                     ),
                 )}
             </div>
-            <div className="inner-container">
-                <div className="countdowns">
+            <div className="flex flex-col gap-2.5 p-2.5 items-center lg:items-start">
+                <div className="flex flex-col items-center lg:items-start">
                     <h3>Release Progress</h3>
                     <span>{percentComplete(mediaMetadata)}</span>
                     <span>{timeUntilRelease(mediaMetadata, currentTime)}</span>
@@ -183,7 +181,7 @@ function App() {
                         {timeUntilNextChunk(mediaMetadata, nextFetchTime)}
                     </span>
                 </div>
-                <div className="actions">
+                <div className="flex flex-col items-start">
                     {chunkQueue.length > 0 ? (
                         <Button
                             variant="outline"
@@ -248,7 +246,7 @@ function App() {
                         >
                             Reset
                         </Button>
-                        <div id="release-simulator">
+                        <div className="flex flex-col">
                             <label htmlFor="release-duration">
                                 Simulated release duration
                             </label>

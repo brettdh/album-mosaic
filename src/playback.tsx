@@ -41,9 +41,10 @@ export const Playback = ({ waveform, elapsedTime, segment }: PlaybackProps) => {
         end = displayTime(segment.end)
     }
     return (
-        <Card className="flex flex-col p-2 gap-0">
-            <div className="flex flex-row justify-between"></div>
-            <span className="text-xs">{trackDisplay}</span>
+        <Card className="flex flex-col w-xs p-2 gap-0">
+            <div className="flex flex-row items-center m-auto">
+                <span className="text-xs">{trackDisplay}</span>
+            </div>
             <AudioScrubber
                 data={data}
                 showHandle={false}

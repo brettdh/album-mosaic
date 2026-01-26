@@ -17,7 +17,7 @@ export default function Track({
     scale,
 }: TrackProps) {
     return (
-        <div className="track">
+        <div className="flex">
             {segments.map(
                 ({ imageUrl, audioUrl, width, start, end }, segmentNum) => (
                     <Segment

@@ -1,6 +1,5 @@
 import { DateTime } from 'luxon'
 
-import './Links.css'
 import type { Link } from '../lib/data'
 
 interface LinksProps {
@@ -16,8 +15,8 @@ const Links = ({ links, releaseEnd }: LinksProps) => {
     return (
         <>
             {links ? (
-                <div className="links">
-                    <ul className="links">
+                <div className="flex flex-col items-start">
+                    <ul className="p-0 list-none text-left">
                         {Object.entries(links).map(([label, { url, date }]) => {
                             const linkDate = date ?? releaseEnd
                             const linkDateShort =

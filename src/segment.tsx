@@ -1,5 +1,3 @@
-import './segment.css'
-
 import { useCallback, useEffect, useState } from 'react'
 import type { FunctionTypes } from './functionTypes'
 import { usePrevious } from '@uidotdev/usehooks'
@@ -11,7 +9,7 @@ import useAudioPlayer from './useAudioPlayer'
 interface SegmentProps extends FunctionTypes {
     trackName?: string
     trackNum: number
-    segmentNum: number
+    egmentNum: number
     imageUrl?: string
     audioUrl?: string
     height: number
@@ -95,9 +93,17 @@ export default function Segment({
         >
             <div
                 className={clsx(
-                    'tile filled',
-                    { playing: isPlaying },
-                    { new: showHighlight },
+                    'group/tile relative p-0 m-0 transition-transform duration-300 ease-in-out',
+                    'hover:transform hover:scale-125 hover:z-10',
+                    'after:absolute after:z-5 after:top-0 after:left-0 after:w-full after:h-full after:opacity-0',
+                    'after:shadow-segment after:transform after:scale-125 hover:after:opacity-100',
+                    {
+                        'transform scale-125 z-10 after:opacity-100': isPlaying,
+                    },
+                    {
+                        'transform scale-150 z-10 after:opacity-100 transition-opacity duration-800 ease-in-out':
+                            showHighlight,
+                    },
                 )}
                 style={{
                     width: scale(width),
@@ -110,14 +116,17 @@ export default function Segment({
                     height={scale(height)}
                 />
                 <FontAwesomeIcon
-                    className={clsx('playback-icon', { playing: isPlaying })}
+                    className={clsx(
+                        'absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 opacity-0 group-hover/tile:opacity-100 transition-opacity duration-300 ease-in-out',
+                        { 'opacity-100': isPlaying },
+                    )}
                     icon={isPlaying ? faPause : faPlay}
                 />
             </div>
         </a>
     ) : (
         <div
-            className="tile empty"
+            className="p-0 m-0"
             style={{
                 width: scale(width),
                 height: scale(height),
