@@ -26,7 +26,9 @@ const Links = ({ links, releaseEnd }: LinksProps) => {
                             return (
                                 <li key={label}>
                                     {isPast(linkDate) ? (
-                                        <a href={url}>{label}</a>
+                                        <a target="_blank" href={url}>
+                                            {label}
+                                        </a>
                                     ) : (
                                         `${label}: ${linkDateShort}`
                                     )}
