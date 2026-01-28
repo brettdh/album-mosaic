@@ -55,6 +55,9 @@ export interface ManualMetadata {
 
     // links shown once release is complete
     links: Record<string, Link>
+
+    artist: string
+    album: string
 }
 
 export type GeneratedMetadata = Omit<CompleteMetadata, keyof ManualMetadata>

@@ -9,7 +9,7 @@ import useAudioPlayer from './useAudioPlayer'
 interface SegmentProps extends FunctionTypes {
     trackName?: string
     trackNum: number
-    egmentNum: number
+    segmentNum: number
     imageUrl?: string
     audioUrl?: string
     height: number

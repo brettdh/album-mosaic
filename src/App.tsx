@@ -17,8 +17,11 @@ import useAudioPlayer from './useAudioPlayer'
 import Links from './Links'
 
 import { Button } from '@/components/ui/button'
+import { Card, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Playback } from './playback'
+import { Badge } from './components/ui/badge'
+import { Spinner } from './components/ui/spinner'
 
 function App() {
     const windowSize = useWindowSize()
@@ -151,12 +154,21 @@ function App() {
     const [progress, setProgress] = useState(100)
 
     if (!mediaMetadata) {
-        return <div className="loading">Loading</div>
+        return (
+            <div className="absolute flex w-full h-full justify-center items-center">
+                <Badge>
+                    <Spinner data-icon="inline-start" />
+                    Loading
+                </Badge>
+            </div>
+        )
     }
+    const isPreRelease =
+        DateTime.fromISO(mediaMetadata.releaseStart) > DateTime.now()
     return (
         <div className="w-full h-full flex flex-col lg:flex-row lg:gap-x-12">
             <div
-                className="flex flex-col"
+                className="flex flex-col relative"
                 style={{ height: scale(mediaMetadata.totalHeight) }}
             >
                 {mediaMetadata.tracks.map(
@@ -171,6 +183,17 @@ function App() {
                         />
                     ),
                 )}
+                {isPreRelease ? (
+                    <Card className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                        <CardHeader>
+                            <CardTitle>{mediaMetadata.artist}</CardTitle>
+                            <CardTitle>{mediaMetadata.album}</CardTitle>
+                        </CardHeader>
+                        <CardFooter>
+                            {`Release begins ${DateTime.fromISO(mediaMetadata.releaseStart).toLocaleString(DateTime.DATETIME_FULL)}`}
+                        </CardFooter>
+                    </Card>
+                ) : null}
             </div>
             <div className="flex flex-col gap-2.5 p-2.5 items-center lg:items-start">
                 <div className="flex flex-col items-center lg:items-start">
@@ -197,6 +220,7 @@ function App() {
                             variant="outline"
                             value="random"
                             onClick={() => playRandom(5)}
+                            disabled={isPreRelease}
                         >
                             Play 5 random chunks
                         </Button>
@@ -230,9 +254,23 @@ function App() {
                             variant="outline"
                             value="Override"
                             onClick={() => {
-                                fetchMetadata({ progress }).catch(
-                                    handleFetchError,
-                                )
+                                const durationDays = 7
+                                const releaseStart = DateTime.now()
+                                    .minus({
+                                        days: (durationDays * progress) / 100,
+                                    })
+                                    .toISO()
+                                const releaseEnd = DateTime.now()
+                                    .plus({
+                                        days:
+                                            durationDays * (1 - progress / 100),
+                                    })
+                                    .toISO()
+                                fetchMetadata({
+                                    progress,
+                                    releaseStart,
+                                    releaseEnd,
+                                }).catch(handleFetchError)
                             }}
                         >
                             Override
