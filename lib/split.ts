@@ -201,8 +201,10 @@ const trackMetadata = await Promise.all(
                     durationToSeconds(await getDuration(file)),
                 ),
         )
-        if (endDurations[1] < endDurations[0] / 4) {
-            // concatenate last two audio files together, since the last one is very short
+        if (isNaN(endDurations[1]) || endDurations[1] < endDurations[0] / 4) {
+            // concatenate last two audio files together, since the last one is very short.
+            // this can also show up as ffprobe failing to read the audio data.
+            // TODO: fix getDuration to throw an error if this happens.
             const tmpdir = await fs.mkdtemp(os.tmpdir())
             const inputFile = path.join(tmpdir, 'concat.txt')
             const lastFile = audioChunkTemplatePath.replace(
@@ -280,6 +282,12 @@ const trackMetadata = await Promise.all(
                 durationToSeconds(await getDuration(filename)),
             ),
         )
+        const nans = durations.filter((d) => isNaN(d))
+        if (nans.length > 0) {
+            progress.log(
+                `Warning: ${filename} contains ${nans.length} empty segments\n`,
+            )
+        }
         const starts = [0]
         for (let i = 1; i < durations.length; i++) {
             starts.push(starts[i - 1] + durations[i])
