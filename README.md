@@ -39,7 +39,7 @@ My actual debut album release: https://bretthiggins.me/music
      - Values are objects with these keys:
        - `url`: the URL to link to
        - `date`: the date after which the link will be displayed (default is `releaseEnd`)
-1. Run `npm run split -- --image media/<album_name>/Cover.jpg --audio-dir media/<album_name>/audio
+1. Run `npm run split -- --image media/<album_name>/Cover.jpg --audio-dir media/<album_name>/audio`
    - This will do the following:
      - Split the audio files into randomly-named 1-second files
      - Slice up the image into one strip per track and each track into one image segment per audio segment
