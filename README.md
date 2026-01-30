@@ -1,75 +1,69 @@
-# React + TypeScript + Vite
+# Album Mosaic
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Album mosaic screenshot](./screenshot.png)
 
-Currently, two official plugins are available:
+A very silly way to tease an album release. Not in any way strategic,
+but fun to make and hopefully fun to play with. My attempt at injecting
+a bit of whimsy and delight in the often grueling grind of independent
+musicians burning ourselves out on the hamster wheels of social media
+and endless content creation.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Live demo
 
-## React Compiler
+My actual debut album release: https://bretthiggins.me/music
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## To run locally
 
-Note: This will impact Vite dev & build performances.
+1. Clone the repo
+1. `npm install`
+1. Get some sample audio files and an album cover image
+   - For my testing, before my album was done, I used the wonderful
+     [Mouth Dreams] album by Neil Cicierega
+1. Drop those files in the `media` directory:
+   ```
+   media/<album_name>/
+     audio/
+       01 - Track One.mp3
+       02 - Track Two.mp3
+       ...
+     Cover.jpg
+   ```
+1. Create a file named `build/metadata.manual.json` with these contents:
+   - Release timestamps, which determine the rate at which new segments are released
+     - `releaseStart`: release start timestamp (ISO 8601)
+     - `releaseEnd`: release end timestamp (ISO 8601)
+   - `artist`: Artist name (used in the pre-release notice)
+   - `album`: Album name (used in the pre-release notice)
+   - `links`: an object describing links to show on the page:
+     - Keys are link labels
+     - Values are objects with these keys:
+       - `url`: the URL to link to
+       - `date`: the date after which the link will be displayed (default is `releaseEnd`)
+1. Run `npm run split -- --image media/<album_name>/Cover.jpg --audio-dir media/<album_name>/audio
+   - This will do the following:
+     - Split the audio files into randomly-named 1-second files
+     - Slice up the image into one strip per track and each track into one image segment per audio segment
+     - Generate a `metadata.json` file 
+   - Use `--chunk-size <seconds>` to change it from the default of `1`
+1. Run `npm run deploy-metadata:dev` to create a local R2 bucket to store `metadata.json`
+1. Run `npm start` and open the URL displayed
 
-## Expanding the ESLint configuration
+I may have missed a [wrangler] setup step somewhere in there. You'll definitely need to configure
+wrangler with your Cloudflare account to actually deploy this app to Cloudflare; for now, that's
+left as an exercise for the reader.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+[Mouth Dreams]: http://www.neilcic.com/mouthdreams/
+[wrangler]: https://developers.cloudflare.com/workers/wrangler/
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## Learnings
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+I discovered way too late in this project that Cloudflare would not let
+me point my own domain at a worker site; it has to be in a zone managed
+by Cloudflare. This made me a sad panda, and may lead me to making another
+attempt with Vercel or Netlify, both of which I tried first before encountering
+limitations, bugs, or other weird behaviors that made me uneasy or stuck.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
-
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+Now that I've finished the first full version of the app, though, it might
+be worth taking another look, as both Vercel and Netlify allow custom domains
+on their free plans. The AWS free tier (with Serverless or another framework
+to make Lambda + S3 easier) might be worth a try as well.
