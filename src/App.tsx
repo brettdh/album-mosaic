@@ -22,6 +22,12 @@ import { Input } from '@/components/ui/input'
 import { Playback } from './playback'
 import { Badge } from './components/ui/badge'
 import { Spinner } from './components/ui/spinner'
+import { CircleQuestionMark } from 'lucide-react'
+import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from './components/ui/popover'
 
 function App() {
     const windowSize = useWindowSize()
@@ -195,8 +201,29 @@ function App() {
                     </Card>
                 ) : null}
             </div>
-            <div className="flex flex-col gap-2.5 p-2.5 items-center lg:items-start">
-                <div className="flex flex-row w-full justify-end">
+            <div className="flex flex-col gap-2.5 p-2.5 items-center mt-3 lg:mt-0 lg:items-start">
+                <div className="flex flex-row w-full justify-end gap-2">
+                    <Popover>
+                        <PopoverTrigger asChild className="cursor-pointer">
+                            <CircleQuestionMark className="size-8.5" />
+                        </PopoverTrigger>
+                        <PopoverContent align="end" className="w-lg">
+                            <h3>What is this?</h3>
+                            <p>
+                                A very silly way to tease an album release. Not
+                                in any way strategic, but fun to make and
+                                hopefully fun to play with.
+                            </p>
+                            <h3>But... why?</h3>
+                            <p>
+                                This is my current attempt at injecting a bit of
+                                whimsy and delight in the often grueling grind
+                                of independent musicians burning ourselves out
+                                on the hamster wheels of social media and
+                                endless content creation.
+                            </p>
+                        </PopoverContent>
+                    </Popover>
                     <a
                         target="_blank"
                         href="https://github.com/brettdh/album-mosaic"
