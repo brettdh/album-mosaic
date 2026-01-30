@@ -196,6 +196,14 @@ function App() {
                 ) : null}
             </div>
             <div className="flex flex-col gap-2.5 p-2.5 items-center lg:items-start">
+                <div className="flex flex-row w-full justify-end">
+                    <a
+                        target="_blank"
+                        href="https://github.com/brettdh/album-mosaic"
+                    >
+                        <img className="size-8" src="/github.png" />
+                    </a>
+                </div>
                 <div className="flex flex-col items-center lg:items-start">
                     <h3>Release Progress</h3>
                     <span>{percentComplete(mediaMetadata)}</span>
