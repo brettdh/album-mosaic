@@ -32,7 +32,7 @@ export function WeBringTheMusic({ className }: WBTMProps) {
 
     useEffect(() => {
         async function getLinks() {
-            const domain = `${window.location.hostname}/music`
+            const domain = 'bretthiggins.me/music'
             const url = `${baseUrl}/api/ring-by-domain`
             const searchUrl = `${url}?domain=${encodeURIComponent(domain)}`
             let response = await fetch(searchUrl)
