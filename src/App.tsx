@@ -28,6 +28,7 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from './components/ui/popover'
+import { WeBringTheMusic } from './WeBringTheMusic'
 
 function App() {
     const windowSize = useWindowSize()
@@ -203,6 +204,7 @@ function App() {
             </div>
             <div className="flex flex-col gap-2.5 p-2.5 items-center mt-3 lg:mt-0 lg:items-start">
                 <div className="flex flex-row w-full justify-end gap-2">
+                    <WeBringTheMusic className="flex-2" />
                     <Popover>
                         <PopoverTrigger asChild className="cursor-pointer">
                             <CircleQuestionMark className="size-8.5" />
